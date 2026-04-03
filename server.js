@@ -7,6 +7,13 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 const demoCache = new Map();
 
+// ─── HERO PHOTO OVERRIDES ────────────────────────────────────────────────────
+// Hardcoded clean hero photos for specific businesses
+// Bypasses classifier entirely — use when Google photos have text/logos
+const heroOverrides = {
+  'ChIJj-aliA_PwoARI36KBu4KTcQ': 'https://lh3.googleusercontent.com/p/AF1QipMLDOab55zCroTuQn8MfxNaD9mM7VsETR0ub6SB=s1360-w1360-h1020-rw', // TNT Auto Repair
+};
+
 // ─── INDUSTRY ROUTING ────────────────────────────────────────────────────────
 function detectIndustry(place) {
   const types = (place.types || []).join(',').toLowerCase();
@@ -99,6 +106,18 @@ async function classifyPhotos(photoUrls, industry) {
   } catch {
     return { hero: photoUrls[0] || null, gallery: photoUrls.slice(1, 4) };
   }
+}
+
+// ─── CLASSIFY WITH OVERRIDE CHECK ────────────────────────────────────────────
+async function classifyPhotosWithOverride(photoUrls, industry, placeId) {
+  const override = heroOverrides[placeId];
+  if (override) {
+    // Use override as hero, classify rest for gallery
+    const galleryUrls = photoUrls.filter(u => u !== override);
+    const { gallery } = await classifyPhotos(galleryUrls, industry);
+    return { hero: override, gallery };
+  }
+  return classifyPhotos(photoUrls, industry);
 }
 
 // ─── FETCH PLACE ─────────────────────────────────────────────────────────────
@@ -592,7 +611,7 @@ app.get('/demo', async (req, res) => {
 
     const allPhotoUrls = (place.photos||[]).slice(0,8).map(p=>getPhotoUrl(p.name,1400));
     const [photos, copy] = await Promise.all([
-      classifyPhotos(allPhotoUrls, industry),
+      classifyPhotosWithOverride(allPhotoUrls, industry, place_id),
       generateCopy(place, industry)
     ]);
 
