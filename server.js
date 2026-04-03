@@ -27,7 +27,7 @@ const defaultLayouts = {
   trades:   'fullbleed',   // Dark, dramatic, full photo behind text
   grooming: 'split',       // Bold split panel — photo right, text left
   wellness: 'editorial',   // Luxury editorial — photo top, text below
-  pet:      'editorial',   // Warm editorial stack
+  pet:      'split',       // Bold split — confident, not soft
   retail:   'split',       // Magazine split — text left, product right
 };
 
@@ -235,7 +235,7 @@ function servicesHTML(copy, primary, theme, style) {
 
   return `<section id="services" style="padding:5rem 4rem;background:${bg};" class="mob-pad">
     <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:${primary};margin-bottom:.6rem;">${copy.services_label||'Our Services'}</p>
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;color:${text};margin-bottom:2.5rem;">What We Do</h2>
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;color:${text};margin-bottom:2.5rem;">${copy.services_label||'What We Do'}</h2>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:${border};border:1px solid ${border};border-radius:6px;overflow:hidden;" class="mob-stack">
       ${copy.services.map((s,i) => `
       <div style="background:${bg};padding:1.75rem 2rem;transition:background .2s;position:relative;" onmouseover="this.style.background='${bg2}'" onmouseout="this.style.background='${bg}'">
