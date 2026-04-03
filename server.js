@@ -12,6 +12,7 @@ const demoCache = new Map();
 // Bypasses classifier entirely — use when Google photos have text/logos
 const heroOverrides = {
   'ChIJj-aliA_PwoARI36KBu4KTcQ': 'https://lh3.googleusercontent.com/p/AF1QipMLDOab55zCroTuQn8MfxNaD9mM7VsETR0ub6SB=s1360-w1360-h1020-rw', // TNT Auto Repair
+  // 'ChIJuZ--3qnHwoARRyWOYPuvQVk': 'PASTE_CLEAN_LAMAY_PHOTO_URL_HERE', // Làmay Nail Spa
 };
 
 // ─── INDUSTRY ROUTING ────────────────────────────────────────────────────────
@@ -367,7 +368,8 @@ function contactHTML(copy, place, primary, highlight, theme) {
   const muted = isDark ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.4)';
   const border = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
 
-  return `<section id="contact" style="padding:5rem 4rem;background:${bg};display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:start;" class="mob-stack mob-pad">
+  return `<section id="contact" style="padding:5rem 4rem;background:${bg};" class="mob-pad">
+    <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:start;" class="mob-stack">
     <div>
       <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:${primary};margin-bottom:.5rem;">Come See Us</p>
       <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;color:${text};margin-bottom:.85rem;">${copy.cta_heading||'Get In Touch'}</h2>
@@ -392,6 +394,7 @@ function contactHTML(copy, place, primary, highlight, theme) {
         <div><div style="font-size:.6rem;color:${muted};letter-spacing:.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:.15rem;">Address</div><div style="font-size:.85rem;line-height:1.5;">${address}</div></div>
       </div>
       <a href="https://maps.google.com/?q=${encodeURIComponent(address)}" target="_blank" style="display:block;text-align:center;padding:.85rem;background:${highlight};color:${isDark?'#000':'#fff'};text-decoration:none;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-top:.25rem;">Get Directions →</a>
+    </div>
     </div>
   </section>`;
 }
