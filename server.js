@@ -4,6 +4,9 @@ const app = express();
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
+// ─── IN-MEMORY CACHE ─────────────────────────────────────────────────────────
+const demoCache = new Map();
+
 // ─── INDUSTRY ROUTING ────────────────────────────────────────────────────────
 function detectIndustry(place) {
   const types = (place.types || []).join(',').toLowerCase();
@@ -510,8 +513,15 @@ function renderRetail(place, copy, photos) {
 
 // ─── MAIN ROUTE ──────────────────────────────────────────────────────────────
 app.get('/demo', async (req, res) => {
-  const { place_id } = req.query;
+  const { place_id, refresh } = req.query;
   if (!place_id) return res.status(400).send('Missing place_id. Usage: /demo?place_id=YOUR_PLACE_ID');
+
+  // Serve from cache if available (skip cache with ?refresh=true)
+  if (demoCache.has(place_id) && refresh !== 'true') {
+    console.log(`⚡ Cache hit: ${place_id}`);
+    res.setHeader('Content-Type', 'text/html');
+    return res.send(demoCache.get(place_id));
+  }
 
   try {
     console.log(`\n━━━ ${place_id}`);
@@ -532,9 +542,11 @@ app.get('/demo', async (req, res) => {
     const renderers = { trades:renderTrades, grooming:renderGrooming, wellness:renderWellness, pet:renderPet, retail:renderRetail };
     const html = (renderers[industry]||renderRetail)(place, copy, photos);
 
+    // Cache and serve
+    demoCache.set(place_id, html);
+    console.log(`✓ Done — ${industry} (cached)`);
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
-    console.log(`✓ Done — ${industry}`);
 
   } catch (err) {
     console.error(err);
@@ -542,11 +554,21 @@ app.get('/demo', async (req, res) => {
   }
 });
 
+app.get('/cache', (req, res) => {
+  const keys = [...demoCache.keys()];
+  res.send(`<style>body{font-family:monospace;padding:2rem;background:#0d0d0d;color:#f5f2ed;}a{color:#4EA7FF;}</style>
+    <h2>Cache status: ${keys.length} demos cached</h2>
+    <ul style="line-height:2;margin-top:1rem;">${keys.map(k => `<li>${k} <a href="/demo?place_id=${k}&refresh=true">↺ refresh</a></li>`).join('')}</ul>
+    <p style="margin-top:1rem;color:#444;font-size:.8rem;">Add ?refresh=true to any demo URL to regenerate and re-cache.</p>`);
+});
+
 app.get('/', (req, res) => {
+  const cached = demoCache.size;
   res.send(`<style>body{font-family:monospace;padding:2rem;background:#0d0d0d;color:#f5f2ed;}a{color:#c94f1a;}code{background:#1a1a1a;padding:.2rem .4rem;border-radius:2px;}</style>
     <h2>⬡ HelloSite Demo Engine v3</h2>
-    <p style="color:#666;margin:.5rem 0 1.5rem;">Generates demo sites from Google Place IDs</p>
+    <p style="color:#666;margin:.5rem 0 1.5rem;">Generates demo sites from Google Place IDs · <a href="/cache" style="color:#4EA7FF;">${cached} cached</a></p>
     <p><strong>Usage:</strong> <code>/demo?place_id=GOOGLE_PLACE_ID</code></p>
+    <p style="color:#555;font-size:.8rem;margin-top:.5rem;">Add <code>?refresh=true</code> to force regeneration.</p>
     <br>
     <p style="color:#444;margin-bottom:.5rem;">Test IDs:</p>
     <ul style="line-height:2.2;color:#666;">
