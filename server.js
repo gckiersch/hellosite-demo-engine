@@ -7,11 +7,10 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 // ─── IN-MEMORY CACHE ─────────────────────────────────────────────────────────
 const demoCache = new Map();
 
-// ─── INDUSTRY ROUTING ────────────────────────────────────────────────────────
+// ─── INDUSTRY + LAYOUT ROUTING ───────────────────────────────────────────────
 function detectIndustry(place) {
   const types = (place.types || []).join(',').toLowerCase();
   const primary = (place.primaryTypeDisplayName?.text || '').toLowerCase();
-
   if (types.match(/car_repair|electrician|plumber|contractor|roofing|locksmith|auto_parts|auto_repair/)) return 'trades';
   if (types.match(/pet_care|veterinary|pet_grooming|animal/) || primary.includes('pet') || primary.includes('dog') || primary.includes('cat')) return 'pet';
   if (types.match(/barber_shop/) || primary.includes('barber')) return 'grooming';
@@ -23,24 +22,34 @@ function detectIndustry(place) {
   return 'retail';
 }
 
+// Layout assigned by industry — can be overridden with ?layout= param
+const defaultLayouts = {
+  trades:   'fullbleed',   // Dark, dramatic, full photo behind text
+  grooming: 'split',       // Bold split panel — photo right, text left
+  wellness: 'editorial',   // Luxury editorial — photo top, text below
+  pet:      'editorial',   // Warm editorial stack
+  retail:   'split',       // Magazine split — text left, product right
+};
+
 // ─── PHOTO CLASSIFICATION ────────────────────────────────────────────────────
 async function classifyPhotos(photoUrls, industry) {
-  if (!photoUrls.length) return { hero: null, gallery: [], detail: null };
-  const toClassify = photoUrls.slice(0, 6);
+  if (!photoUrls.length) return { hero: null, gallery: [] };
+  const toClassify = photoUrls.slice(0, 8);
 
+  // Hero photo preferences — avoid exterior with signage for hero
   const heroPrefs = {
-    trades:   ['exterior', 'interior', 'people', 'detail'],
-    grooming: ['people', 'interior', 'exterior', 'detail'],
-    wellness: ['interior', 'detail', 'people', 'exterior'],
-    pet:      ['people', 'interior', 'exterior', 'detail'],
-    retail:   ['interior', 'product', 'exterior', 'detail'],
+    trades:   ['interior', 'people', 'detail', 'exterior'],
+    grooming: ['people', 'interior', 'detail', 'exterior'],
+    wellness: ['interior', 'people', 'detail', 'exterior'],
+    pet:      ['people', 'interior', 'detail', 'exterior'],
+    retail:   ['interior', 'product', 'people', 'exterior'],
   };
   const gallPrefs = {
-    trades:   ['people', 'detail', 'interior', 'exterior'],
+    trades:   ['exterior', 'detail', 'people', 'interior'],
     grooming: ['people', 'detail', 'interior', 'exterior'],
-    wellness: ['detail', 'people', 'interior', 'product'],
-    pet:      ['people', 'detail', 'interior', 'exterior'],
-    retail:   ['product', 'detail', 'interior', 'people'],
+    wellness: ['detail', 'interior', 'people', 'product'],
+    pet:      ['people', 'detail', 'exterior', 'interior'],
+    retail:   ['product', 'interior', 'detail', 'people'],
   };
 
   try {
@@ -48,8 +57,8 @@ async function classifyPhotos(photoUrls, industry) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514', max_tokens: 200,
-        messages: [{ role: 'user', content: `Classify each photo URL for a ${industry} business website. Return ONLY a JSON array of: exterior|interior|product|people|detail|other\n\n${toClassify.map((u,i)=>`${i+1}. ${u}`).join('\n')}` }]
+        model: 'claude-sonnet-4-20250514', max_tokens: 300,
+        messages: [{ role: 'user', content: `Classify each photo for a ${industry} business website hero selection. Be strict — only mark as "people" if humans are clearly visible, "interior" if inside the business, "exterior" if outside/storefront/signage, "product" if showing items for sale, "detail" for close-up work/craftsmanship, "other" for anything else. Exterior photos with large signage or text should be marked "exterior". Return ONLY a JSON array in order:\n\n${toClassify.map((u,i)=>`${i+1}. ${u}`).join('\n')}` }]
       })
     });
     const data = await res.json();
@@ -69,7 +78,7 @@ async function classifyPhotos(photoUrls, industry) {
     const hero = pickBest(hp);
     const used = hero ? [hero] : [];
     const gallery = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       const pick = pickBest(gp, [...used, ...gallery]);
       if (pick) gallery.push(pick);
     }
@@ -87,18 +96,18 @@ async function getPlaceDetails(placeId) {
   return res.json();
 }
 
-function getPhotoUrl(photoName, maxWidth = 1200) {
+function getPhotoUrl(photoName, maxWidth = 1400) {
   return `https://places.googleapis.com/v1/${photoName}/media?key=${GOOGLE_API_KEY}&maxWidthPx=${maxWidth}`;
 }
 
 // ─── GENERATE COPY ────────────────────────────────────────────────────────────
 async function generateCopy(place, industry) {
   const tones = {
-    trades:   'Bold, direct, trustworthy. These are hardworking people who fix things right. No fluff. Services = specific repair types.',
-    grooming: 'Sharp, confident, personal. The barber relationship is everything. Services = specific cuts and treatments.',
-    wellness: 'Calm, luxurious, restorative. Quiet confidence. Services = specific treatments and nail services.',
-    pet:      'Warm, loving, caring. Pet owners trust you with their family. Services = specific grooming and care services.',
-    retail:   'Curated, warm, personal. Discovery and gifting. Services = specific product categories.',
+    trades:   'Bold, direct, trustworthy. Blue collar pride. No fluff. Services = specific repair types.',
+    grooming: 'Sharp, confident, personal. The craft matters. Services = specific cuts and treatments.',
+    wellness: 'Calm, luxurious, restorative. Expert hands. Services = specific treatments.',
+    pet:      'Warm, loving, trustworthy. These are family members. Services = specific grooming services.',
+    retail:   'Curated, personal, discovery-driven. Services = product categories.',
   };
   const colorDefaults = {
     trades:   { p: '#c94f1a', a: '#d4a017', h: '#e05a1f', theme: 'dark' },
@@ -108,7 +117,7 @@ async function generateCopy(place, industry) {
     retail:   { p: '#6b4c3b', a: '#c4a882', h: '#8b5e3c', theme: 'light' },
   };
 
-  const prompt = `Write copy for a ${industry} business website. Tone: ${tones[industry]}
+  const prompt = `Write punchy, specific website copy for this ${industry} business. Tone: ${tones[industry]}
 
 Business: ${place.displayName?.text}
 Type: ${place.primaryTypeDisplayName?.text}
@@ -116,19 +125,19 @@ Address: ${place.formattedAddress}
 Rating: ${place.rating} (${place.userRatingCount} reviews)
 Reviews: ${(place.reviews||[]).slice(0,3).map(r=>r.text?.text?.substring(0,180)).join(' | ')}
 
-Return ONLY valid JSON:
+Return ONLY valid JSON — no markdown, no backticks:
 {
-  "tagline": "4-6 word tagline for this specific business",
-  "hero_headline": "3-5 powerful words. Use \\n after first 2-3 words for line break.",
-  "hero_sub": "2 sentences. Reference real details from their reviews. Specific to this business.",
-  "services_label": "Section label e.g. Our Services / What We Carry / Our Treatments",
-  "services": ["6 specific services this business actually offers"],
-  "service_descs": ["6 concise descriptions, 1-2 sentences, specific to this business"],
-  "cta_heading": "2-3 word contact heading",
-  "cta_sub": "One warm sentence inviting them to visit or call",
-  "color_primary": "hex — ${colorDefaults[industry]?.p}",
-  "color_accent": "hex — ${colorDefaults[industry]?.a}",
-  "color_highlight": "hex — ${colorDefaults[industry]?.h}",
+  "tagline": "4-6 word tagline. Short and punchy.",
+  "hero_headline": "3-5 POWERFUL words. Use \\n after first 2-3 words.",
+  "hero_sub": "2 sentences max. Specific to this business. Reference real details.",
+  "services_label": "e.g. Our Services / What We Do / Our Treatments",
+  "services": ["6 specific services this business offers"],
+  "service_descs": ["6 short descriptions, 1 sentence each"],
+  "cta_heading": "2-3 words",
+  "cta_sub": "One warm sentence to visit or call",
+  "color_primary": "${colorDefaults[industry]?.p}",
+  "color_accent": "${colorDefaults[industry]?.a}",
+  "color_highlight": "${colorDefaults[industry]?.h}",
   "theme": "${colorDefaults[industry]?.theme}"
 }`;
 
@@ -147,7 +156,7 @@ Return ONLY valid JSON:
 function extractPlaceData(place) {
   return {
     name: place.displayName?.text || 'Local Business',
-    shortName: (place.displayName?.text || 'Business').split(' ').slice(0,2).join(' '),
+    shortName: (place.displayName?.text || 'Business').split(' ').slice(0,3).join(' '),
     phone: place.nationalPhoneNumber || '',
     address: place.formattedAddress || '',
     rating: place.rating || 5.0,
@@ -158,153 +167,11 @@ function extractPlaceData(place) {
 }
 function cleanPhone(p) { return p.replace(/\D/g, ''); }
 function formatHeadline(h, color) {
-  return h.split(/\\n|\n/).map((l,i) => i===1 ? `<em style="color:${color};font-style:normal;">${l}</em>` : l).join('\n');
+  return h.split(/\\n|\n/).map((l,i) => i===1 ? `<span style="color:${color};">${l}</span>` : l).join('<br>');
 }
+function stars(n) { return '★'.repeat(Math.round(n)); }
 
-// ─── SHARED COMPONENTS ───────────────────────────────────────────────────────
-
-function navHTML(shortName, phone, copy, theme, links) {
-  const isDark = theme === 'dark';
-  const bg = isDark ? 'rgba(10,10,12,0.96)' : 'rgba(252,251,249,0.96)';
-  const text = isDark ? '#f5f2ed' : '#1a1a1a';
-  const muted = isDark ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.45)';
-  const border = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)';
-  const h = copy.color_highlight || copy.color_primary;
-
-  return `<nav style="position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1rem 2.5rem;background:${bg};backdrop-filter:blur(12px);border-bottom:1px solid ${border};">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:.05em;color:${text};">${shortName}</div>
-    <ul style="display:flex;gap:1.75rem;list-style:none;align-items:center;">
-      ${links.map((l,i) => i === links.length-1
-        ? `<li><a href="#contact" style="background:${h};color:#fff;padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">${l}</a></li>`
-        : `<li><a href="#${l.toLowerCase().replace(/\s/g,'')}" style="color:${muted};text-decoration:none;font-size:.75rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;transition:color .2s;">${l}</a></li>`
-      ).join('')}
-    </ul>
-  </nav>`;
-}
-
-function servicesSection(copy, primary, theme, style) {
-  const isDark = theme === 'dark';
-  const bg = isDark ? '#0d0d0d' : '#fafaf8';
-  const bg2 = isDark ? '#141414' : '#f3f0eb';
-  const text = isDark ? '#f5f2ed' : '#1a1a1a';
-  const muted = isDark ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.5)';
-  const border = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)';
-  const titleFont = (style === 'serif') ? `'Playfair Display',Georgia,serif` : `'Bebas Neue',sans-serif`;
-  const titleSize = (style === 'serif') ? '1.1rem' : '1.15rem';
-  const titleWeight = (style === 'serif') ? '700' : '400';
-  const titleSpacing = (style === 'serif') ? '-.01em' : '.04em';
-
-  return `<section id="services" style="padding:5rem 4rem;background:${bg};">
-    <p style="font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:${primary};margin-bottom:.6rem;">${copy.services_label || 'Our Services'}</p>
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,4vw,3rem);line-height:1;color:${text};margin-bottom:2.5rem;">What We Do</h2>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:${border};border:1px solid ${border};border-radius:4px;overflow:hidden;">
-      ${copy.services.map((s,i) => `
-      <div style="background:${bg};padding:1.5rem 1.75rem;transition:background .2s;" onmouseover="this.style.background='${bg2}'" onmouseout="this.style.background='${bg}'">
-        ${style==='numbered' ? `<div style="font-family:'DM Mono',monospace;font-size:.6rem;color:${primary};opacity:.7;margin-bottom:.75rem;letter-spacing:.1em;">${String(i+1).padStart(2,'0')}</div>` : ''}
-        ${style==='dot' ? `<div style="width:6px;height:6px;background:${primary};border-radius:50%;margin-bottom:.85rem;"></div>` : ''}
-        ${style==='line' ? `<div style="width:20px;height:2px;background:${primary};margin-bottom:.85rem;border-radius:1px;"></div>` : ''}
-        ${style==='serif' ? `<div style="width:20px;height:1px;background:${primary};opacity:.5;margin-bottom:.85rem;"></div>` : ''}
-        <div style="font-family:${titleFont};font-size:${titleSize};font-weight:${titleWeight};letter-spacing:${titleSpacing};margin-bottom:.5rem;color:${text};line-height:1.2;">${s}</div>
-        <div style="font-size:.8rem;color:${muted};line-height:1.65;">${copy.service_descs[i]||''}</div>
-      </div>`).join('')}
-    </div>
-  </section>`;
-}
-
-function gallerySection(images, name, theme) {
-  if (!images || !images.length) return '';
-  const isDark = theme === 'dark';
-  const bg = isDark ? '#0d0d0d' : '#fafaf8';
-  return `<div style="padding:0 4rem 5rem;background:${bg};display:grid;grid-template-columns:repeat(${Math.min(images.length,3)},1fr);gap:6px;">
-    ${images.map(url => `<div style="aspect-ratio:4/3;overflow:hidden;border-radius:3px;"><img src="${url}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .5s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}
-  </div>`;
-}
-
-function reviewsSection(reviews, rating, reviewCount, primary, accent, theme) {
-  const isDark = theme === 'dark';
-  const bg = isDark ? '#111113' : '#f3f0eb';
-  const bg2 = isDark ? '#0d0d0d' : '#fafaf8';
-  const text = isDark ? '#f5f2ed' : '#1a1a1a';
-  const muted = isDark ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.45)';
-  const border = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)';
-
-  return `<section id="reviews" style="background:${bg};padding:5rem 4rem;">
-    <div style="display:flex;align-items:baseline;gap:1.5rem;margin-bottom:2.5rem;flex-wrap:wrap;">
-      <div>
-        <p style="font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:${primary};margin-bottom:.5rem;">What People Say</p>
-        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,4vw,3rem);line-height:1;color:${text};">Google Reviews</h2>
-      </div>
-      <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1.25rem;background:${bg2};border:1px solid ${border};border-radius:3px;margin-left:auto;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:${accent};line-height:1;">${rating}</div>
-        <div>
-          <div style="color:#f59e0b;font-size:.9rem;line-height:1;">${'★'.repeat(Math.round(rating))}</div>
-          <div style="font-size:.7rem;color:${muted};margin-top:.2rem;">${reviewCount} reviews</div>
-        </div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
-      ${reviews.map(r => {
-        const txt = (r.text?.text||'').substring(0,160);
-        return `<div style="background:${bg2};border:1px solid ${border};padding:1.25rem 1.5rem;border-radius:3px;">
-          <div style="color:#f59e0b;font-size:.75rem;letter-spacing:.05em;margin-bottom:.6rem;">★★★★★</div>
-          <p style="font-size:.8rem;color:${muted};line-height:1.68;margin-bottom:.8rem;font-style:italic;">"${txt}${(r.text?.text||'').length>160?'…':''}"</p>
-          <p style="font-size:.65rem;color:${muted};letter-spacing:.06em;text-transform:uppercase;font-family:'DM Mono',monospace;opacity:.6;">— ${r.authorAttribution?.displayName||'Google Review'}</p>
-        </div>`;
-      }).join('')}
-    </div>
-  </section>`;
-}
-
-function contactSection(copy, place, primary, highlight, theme) {
-  const { phone, address, hours } = extractPlaceData(place);
-  const isDark = theme === 'dark';
-  const bg = isDark ? '#0d0d0d' : '#fafaf8';
-  const bg2 = isDark ? '#141414' : '#f3f0eb';
-  const text = isDark ? '#f5f2ed' : '#1a1a1a';
-  const muted = isDark ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.45)';
-  const border = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)';
-
-  return `<section id="contact" style="padding:5rem 4rem;background:${bg};display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start;">
-    <div>
-      <p style="font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:${primary};margin-bottom:.5rem;">Come See Us</p>
-      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,4vw,3rem);line-height:1;color:${text};margin-bottom:.85rem;">${copy.cta_heading||'Get In Touch'}</h2>
-      <p style="font-size:.85rem;color:${muted};line-height:1.75;max-width:360px;margin-bottom:1.75rem;">${copy.cta_sub||''}</p>
-      ${hours.length ? `<div>${hours.map(h => {
-        const parts = h.split(': ');
-        const closed = !parts[1]||parts[1].toLowerCase().includes('closed');
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid ${border};">
-          <span style="font-size:.75rem;color:${muted};">${parts[0]}</span>
-          <span style="font-family:'DM Mono',monospace;font-size:.72rem;color:${closed?(isDark?'#3a3a3a':'#ccc'):text};">${parts[1]||'Closed'}</span>
-        </div>`;
-      }).join('')}</div>` : ''}
-    </div>
-    <div style="display:flex;flex-direction:column;gap:.75rem;">
-      ${phone ? `<a href="tel:${cleanPhone(phone)}" style="display:flex;align-items:center;gap:.85rem;padding:.9rem 1.1rem;background:${bg2};border:1px solid ${border};border-radius:3px;text-decoration:none;color:${text};">
-        <span style="font-size:1rem;">📞</span>
-        <div><div style="font-size:.6rem;color:${muted};letter-spacing:.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:.15rem;">Phone</div><div style="font-size:.88rem;font-weight:500;">${phone}</div></div>
-      </a>` : ''}
-      <div style="display:flex;align-items:flex-start;gap:.85rem;padding:.9rem 1.1rem;background:${bg2};border:1px solid ${border};border-radius:3px;">
-        <span style="font-size:1rem;margin-top:.1rem;">📍</span>
-        <div><div style="font-size:.6rem;color:${muted};letter-spacing:.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:.15rem;">Address</div><div style="font-size:.82rem;line-height:1.5;">${address}</div></div>
-      </div>
-      <a href="https://maps.google.com/?q=${encodeURIComponent(address)}" target="_blank" style="display:block;text-align:center;padding:.8rem;background:${highlight};color:#fff;text-decoration:none;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;margin-top:.25rem;">Get Directions →</a>
-    </div>
-  </section>`;
-}
-
-function footerHTML(shortName, address, phone, theme, primary) {
-  const isDark = theme === 'dark';
-  const bg = isDark ? '#080808' : '#f0ede8';
-  const text = isDark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.3)';
-  const border = isDark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)';
-
-  return `<footer style="background:${bg};border-top:1px solid ${border};padding:1.5rem 4rem;display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.05em;color:${text};">${shortName}</div>
-    <div style="font-size:.68rem;color:${text};font-family:'DM Mono',monospace;">${phone||''}</div>
-    <div style="font-size:.6rem;color:${isDark?'rgba(255,255,255,.1)':'rgba(0,0,0,.15)'};font-family:'DM Mono',monospace;">A HelloSite · GetHelloSite.com</div>
-  </footer>`;
-}
-
+// ─── BASE HTML ────────────────────────────────────────────────────────────────
 function baseHTML(name, theme, body) {
   const isDark = theme === 'dark';
   return `<!DOCTYPE html>
@@ -314,19 +181,21 @@ function baseHTML(name, theme, body) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${name}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   html{scroll-behavior:smooth;}
-  body{background:${isDark?'#0d0d0d':'#fafaf8'};color:${isDark?'#f5f2ed':'#1a1a1a'};font-family:'DM Sans',sans-serif;font-weight:300;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  body{background:${isDark?'#0a0a0a':'#fafaf8'};color:${isDark?'#f5f2ed':'#1a1a1a'};font-family:'DM Sans',sans-serif;font-weight:300;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .fu{opacity:0;animation:fadeUp .7s ease forwards;}
+  .d1{animation-delay:.15s}.d2{animation-delay:.3s}.d3{animation-delay:.45s}.d4{animation-delay:.6s}
   @media(max-width:768px){
-    nav ul{display:none!important;}
-    [data-section]{padding:3.5rem 1.5rem!important;}
-    [data-grid]{grid-template-columns:1fr!important;}
-    [data-hero-split]{grid-template-columns:1fr!important;}
-    [data-hero-split] [data-hero-image]{display:none!important;}
-    footer{flex-direction:column!important;gap:.6rem!important;text-align:center!important;padding:1.25rem 1.5rem!important;}
+    .mob-hide{display:none!important;}
+    .mob-stack{grid-template-columns:1fr!important;min-height:auto!important;}
+    .mob-pad{padding:3.5rem 1.5rem!important;}
+    .mob-full{grid-column:1/-1!important;}
+    footer{flex-direction:column!important;gap:.75rem!important;text-align:center!important;padding:1.5rem!important;}
   }
 </style>
 </head>
@@ -334,217 +203,346 @@ function baseHTML(name, theme, body) {
 </html>`;
 }
 
-// ─── TEMPLATE: TRADES ─────────────────────────────────────────────────────────
-function renderTrades(place, copy, photos) {
+// ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
+function navHTML(shortName, copy, theme, links) {
+  const isDark = theme === 'dark';
+  const bg = isDark ? 'rgba(10,10,10,.97)' : 'rgba(252,251,249,.97)';
+  const text = isDark ? '#f5f2ed' : '#1a1a1a';
+  const muted = isDark ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.4)';
+  const border = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+  const h = copy.color_highlight || copy.color_primary;
+  return `<nav style="position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:.9rem 2.5rem;background:${bg};backdrop-filter:blur(16px);border-bottom:1px solid ${border};">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.06em;color:${text};">${shortName}</div>
+    <ul style="display:flex;gap:2rem;list-style:none;align-items:center;" class="mob-hide">
+      ${links.map((l,i) => i===links.length-1
+        ? `<li><a href="#contact" style="background:${h};color:${isDark?'#000':'#fff'};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">${l}</a></li>`
+        : `<li><a href="#${l.toLowerCase().replace(/\s/g,'')}" style="color:${muted};text-decoration:none;font-size:.73rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;">${l}</a></li>`
+      ).join('')}
+    </ul>
+  </nav>`;
+}
+
+function servicesHTML(copy, primary, theme, style) {
+  const isDark = theme === 'dark';
+  const bg = isDark ? '#0a0a0a' : '#fafaf8';
+  const bg2 = isDark ? '#111' : '#f0ede8';
+  const text = isDark ? '#f5f2ed' : '#1a1a1a';
+  const muted = isDark ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.45)';
+  const border = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+  const isSerif = style === 'serif' || style === 'elegant';
+  const titleFont = isSerif ? `'Playfair Display',serif` : `'Bebas Neue',sans-serif`;
+  const titleSize = isSerif ? '1.05rem' : '1.1rem';
+
+  return `<section id="services" style="padding:5rem 4rem;background:${bg};" class="mob-pad">
+    <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:${primary};margin-bottom:.6rem;">${copy.services_label||'Our Services'}</p>
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;color:${text};margin-bottom:2.5rem;">What We Do</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:${border};border:1px solid ${border};border-radius:6px;overflow:hidden;" class="mob-stack">
+      ${copy.services.map((s,i) => `
+      <div style="background:${bg};padding:1.75rem 2rem;transition:background .2s;position:relative;" onmouseover="this.style.background='${bg2}'" onmouseout="this.style.background='${bg}'">
+        <div style="width:28px;height:2px;background:${primary};margin-bottom:1rem;border-radius:2px;opacity:.7;"></div>
+        <div style="font-family:${titleFont};font-size:${titleSize};letter-spacing:${isSerif?'-.01em':'.03em'};margin-bottom:.5rem;color:${text};line-height:1.2;font-weight:${isSerif?700:400};">${s}</div>
+        <div style="font-size:.8rem;color:${muted};line-height:1.68;">${copy.service_descs[i]||''}</div>
+      </div>`).join('')}
+    </div>
+  </section>`;
+}
+
+function galleryHTML(images, name, theme) {
+  if (!images?.length) return '';
+  const isDark = theme === 'dark';
+  const bg = isDark ? '#0a0a0a' : '#fafaf8';
+  const imgs = images.slice(0,4);
+  // Use masonry-style grid for 4 images
+  if (imgs.length >= 4) {
+    return `<div style="padding:0 4rem 5rem;background:${bg};display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:240px 240px;gap:6px;" class="mob-pad">
+      <div style="grid-row:1/3;overflow:hidden;border-radius:4px;"><img src="${imgs[0]}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>
+      ${imgs.slice(1).map(url=>`<div style="overflow:hidden;border-radius:4px;"><img src="${url}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}
+    </div>`;
+  }
+  return `<div style="padding:0 4rem 5rem;background:${bg};display:grid;grid-template-columns:repeat(${imgs.length},1fr);gap:6px;">
+    ${imgs.map(url=>`<div style="aspect-ratio:4/3;overflow:hidden;border-radius:4px;"><img src="${url}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}
+  </div>`;
+}
+
+function reviewsHTML(reviews, rating, reviewCount, primary, theme) {
+  const isDark = theme === 'dark';
+  const bg = isDark ? '#111' : '#f0ede8';
+  const bg2 = isDark ? '#0a0a0a' : '#fafaf8';
+  const text = isDark ? '#f5f2ed' : '#1a1a1a';
+  const muted = isDark ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.4)';
+  const border = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+
+  return `<section id="reviews" style="background:${bg};padding:5rem 4rem;" class="mob-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3rem;flex-wrap:wrap;gap:1.5rem;">
+      <div>
+        <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:${primary};margin-bottom:.5rem;">What People Say</p>
+        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;color:${text};">Google Reviews</h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;background:${bg2};border:1px solid ${border};padding:.8rem 1.5rem;border-radius:4px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:3rem;color:${primary};line-height:1;">${rating}</div>
+        <div>
+          <div style="color:#f59e0b;font-size:1rem;letter-spacing:.05em;">${stars(rating)}</div>
+          <div style="font-size:.7rem;color:${muted};margin-top:.2rem;font-family:'DM Mono',monospace;">${reviewCount} Google reviews</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;" class="mob-stack">
+      ${reviews.map(r => {
+        const txt = (r.text?.text||'').substring(0,180);
+        return `<div style="background:${bg2};border:1px solid ${border};padding:1.5rem;border-radius:4px;">
+          <div style="color:#f59e0b;font-size:.8rem;margin-bottom:.7rem;">★★★★★</div>
+          <p style="font-size:.82rem;color:${muted};line-height:1.7;margin-bottom:1rem;font-style:italic;">"${txt}${(r.text?.text||'').length>180?'…':''}"</p>
+          <p style="font-size:.65rem;color:${muted};letter-spacing:.08em;text-transform:uppercase;font-family:'DM Mono',monospace;opacity:.6;">— ${r.authorAttribution?.displayName||'Google Review'}</p>
+        </div>`;
+      }).join('')}
+    </div>
+  </section>`;
+}
+
+function contactHTML(copy, place, primary, highlight, theme) {
+  const { phone, address, hours } = extractPlaceData(place);
+  const isDark = theme === 'dark';
+  const bg = isDark ? '#0a0a0a' : '#fafaf8';
+  const bg2 = isDark ? '#141414' : '#f0ede8';
+  const text = isDark ? '#f5f2ed' : '#1a1a1a';
+  const muted = isDark ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.4)';
+  const border = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+
+  return `<section id="contact" style="padding:5rem 4rem;background:${bg};display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:start;" class="mob-stack mob-pad">
+    <div>
+      <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:${primary};margin-bottom:.5rem;">Come See Us</p>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;color:${text};margin-bottom:.85rem;">${copy.cta_heading||'Get In Touch'}</h2>
+      <p style="font-size:.88rem;color:${muted};line-height:1.78;max-width:360px;margin-bottom:2rem;">${copy.cta_sub||''}</p>
+      ${hours.length ? `<div style="margin-top:1rem;">${hours.map(h => {
+        const [day,...rest] = h.split(': ');
+        const time = rest.join(': ');
+        const closed = !time||time.toLowerCase().includes('closed');
+        return `<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid ${border};">
+          <span style="font-size:.75rem;color:${muted};">${day}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:.72rem;color:${closed?(isDark?'#333':'#ccc'):text};">${time||'Closed'}</span>
+        </div>`;
+      }).join('')}</div>` : ''}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.75rem;">
+      ${phone?`<a href="tel:${cleanPhone(phone)}" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;background:${bg2};border:1px solid ${border};border-radius:4px;text-decoration:none;color:${text};">
+        <span style="font-size:1.1rem;">📞</span>
+        <div><div style="font-size:.6rem;color:${muted};letter-spacing:.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:.15rem;">Phone</div><div style="font-size:.92rem;font-weight:500;">${phone}</div></div>
+      </a>`:''}
+      <div style="display:flex;align-items:flex-start;gap:1rem;padding:1rem 1.25rem;background:${bg2};border:1px solid ${border};border-radius:4px;">
+        <span style="font-size:1.1rem;margin-top:.1rem;">📍</span>
+        <div><div style="font-size:.6rem;color:${muted};letter-spacing:.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:.15rem;">Address</div><div style="font-size:.85rem;line-height:1.5;">${address}</div></div>
+      </div>
+      <a href="https://maps.google.com/?q=${encodeURIComponent(address)}" target="_blank" style="display:block;text-align:center;padding:.85rem;background:${highlight};color:${isDark?'#000':'#fff'};text-decoration:none;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-top:.25rem;">Get Directions →</a>
+    </div>
+  </section>`;
+}
+
+function footerHTML(shortName, address, phone, theme, primary) {
+  const isDark = theme === 'dark';
+  const bg = isDark ? '#060606' : '#eceae5';
+  const text = isDark ? 'rgba(255,255,255,.2)' : 'rgba(0,0,0,.2)';
+  return `<footer style="background:${bg};padding:1.5rem 4rem;display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.06em;color:${text};">${shortName}</div>
+    <div style="font-size:.65rem;color:${text};font-family:'DM Mono',monospace;">${phone||''}</div>
+    <div style="font-size:.6rem;color:${isDark?'rgba(255,255,255,.08)':'rgba(0,0,0,.12)'};font-family:'DM Mono',monospace;">A HelloSite · GetHelloSite.com</div>
+  </footer>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYOUT A — FULL BLEED
+// Dark photo behind text with strong overlay. Best for Trades.
+// ═══════════════════════════════════════════════════════════════════════════
+function layoutFullBleed(place, copy, photos, industry) {
   const { name, shortName, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
   const p = copy.color_primary || '#c94f1a';
   const a = copy.color_accent || '#d4a017';
-  const h = copy.color_highlight || '#e05a1f';
+  const h = copy.color_highlight || p;
+  const theme = copy.theme || 'dark';
+  const isDark = theme === 'dark';
+  const textColor = isDark ? '#f5f2ed' : '#1a1a1a';
 
-  return baseHTML(name, 'dark', `
-    ${navHTML(shortName, phone, copy, 'dark', ['Services','Gallery','Reviews','Call Us'])}
+  return baseHTML(name, theme, `
+    ${navHTML(shortName, copy, theme, ['Services','Gallery','Reviews','Call Us'])}
+
     <section style="min-height:100vh;position:relative;display:flex;align-items:center;overflow:hidden;">
-      <div style="position:absolute;inset:0;background:${photos.hero?`url('${photos.hero}') center/cover no-repeat`:'#0d0d0d'};"></div>
-      <div style="position:absolute;inset:0;background:linear-gradient(100deg,rgba(10,10,10,.97) 40%,rgba(10,10,10,.45) 100%);"></div>
-      <div style="position:relative;z-index:2;padding:8rem 4rem 5rem;max-width:660px;">
-        <div style="display:inline-flex;align-items:center;gap:.4rem;border:1px solid ${p};color:${p};font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.14em;padding:.35rem .9rem;border-radius:2px;margin-bottom:1.25rem;">
+      ${photos.hero ? `<div style="position:absolute;inset:0;background:url('${photos.hero}') center/cover no-repeat;"></div>` : ''}
+      <div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(5,5,5,.97) 42%,rgba(5,5,5,.5) 75%,rgba(5,5,5,.2) 100%);"></div>
+      <div style="position:relative;z-index:2;padding:9rem 5rem 6rem;max-width:720px;" class="mob-pad fu">
+        <div style="display:inline-flex;align-items:center;gap:.5rem;border:1px solid ${p};color:${p};font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.15em;padding:.35rem .9rem;border-radius:2px;margin-bottom:1.5rem;">
           <span style="width:5px;height:5px;background:${p};border-radius:50%;animation:pulse 2s infinite;"></span>${copy.tagline}
         </div>
-        <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(3.5rem,7vw,6.5rem);line-height:.92;letter-spacing:.015em;margin-bottom:1.25rem;white-space:pre-line;color:#f5f2ed;">${formatHeadline(copy.hero_headline, p)}</h1>
-        <p style="font-size:.95rem;color:rgba(255,255,255,.55);line-height:1.78;max-width:460px;margin-bottom:2.25rem;">${copy.hero_sub}</p>
-        <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
-          ${phone?`<a href="tel:${cleanPhone(phone)}" style="background:${h};color:#fff;padding:.8rem 1.75rem;text-decoration:none;font-size:.78rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">📞 ${phone}</a>`:''}
-          <a href="#services" style="border:1px solid rgba(255,255,255,.18);color:#f5f2ed;padding:.8rem 1.75rem;text-decoration:none;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Our Services</a>
+        <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(4.5rem,9vw,8rem);line-height:.9;letter-spacing:.01em;margin-bottom:1.5rem;color:#f5f2ed;" class="fu d1">${formatHeadline(copy.hero_headline, p)}</h1>
+        <p style="font-size:1.05rem;color:rgba(255,255,255,.55);line-height:1.78;max-width:500px;margin-bottom:2.5rem;" class="fu d2">${copy.hero_sub}</p>
+        <div style="display:flex;gap:.85rem;flex-wrap:wrap;" class="fu d3">
+          ${phone?`<a href="tel:${cleanPhone(phone)}" style="background:${h};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">📞 ${phone}</a>`:''}
+          <a href="#services" style="border:1px solid rgba(255,255,255,.2);color:#f5f2ed;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Our Services</a>
         </div>
-        <div style="display:flex;gap:2.5rem;margin-top:2.75rem;padding-top:2rem;border-top:1px solid rgba(255,255,255,.07);">
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:${a};line-height:1;">${rating}★</div><div style="font-size:.62rem;color:rgba(255,255,255,.35);letter-spacing:.08em;text-transform:uppercase;margin-top:.2rem;">Rating</div></div>
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:${a};line-height:1;">${reviewCount}</div><div style="font-size:.62rem;color:rgba(255,255,255,.35);letter-spacing:.08em;text-transform:uppercase;margin-top:.2rem;">Reviews</div></div>
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:${a};line-height:1;">LA</div><div style="font-size:.62rem;color:rgba(255,255,255,.35);letter-spacing:.08em;text-transform:uppercase;margin-top:.2rem;">Local</div></div>
+        <div style="display:flex;gap:3rem;margin-top:3.5rem;padding-top:2.5rem;border-top:1px solid rgba(255,255,255,.07);" class="fu d4">
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:${a};line-height:1;">${rating}★</div><div style="font-size:.62rem;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Rating</div></div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:${a};line-height:1;">${reviewCount}</div><div style="font-size:.62rem;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Reviews</div></div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:${a};line-height:1;">LA</div><div style="font-size:.62rem;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Local</div></div>
         </div>
       </div>
     </section>
-    ${servicesSection(copy, p, 'dark', 'numbered')}
-    ${gallerySection(photos.gallery, name, 'dark')}
-    ${reviewsSection(reviews, rating, reviewCount, p, a, 'dark')}
-    ${contactSection(copy, place, p, h, 'dark')}
-    ${footerHTML(shortName, address, phone, 'dark', p)}
+
+    ${servicesHTML(copy, p, theme, 'numbered')}
+    ${galleryHTML(photos.gallery, name, theme)}
+    ${reviewsHTML(reviews, rating, reviewCount, p, theme)}
+    ${contactHTML(copy, place, p, h, theme)}
+    ${footerHTML(shortName, address, phone, theme, p)}
   `);
 }
 
-// ─── TEMPLATE: GROOMING ───────────────────────────────────────────────────────
-function renderGrooming(place, copy, photos) {
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYOUT B — SPLIT PANEL
+// Bold 50/50 split — text left, photo right. Best for Grooming, Retail.
+// ═══════════════════════════════════════════════════════════════════════════
+function layoutSplit(place, copy, photos, industry) {
   const { name, shortName, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
   const p = copy.color_primary || '#111118';
   const a = copy.color_accent || '#c9a84c';
-  const h = copy.color_highlight || '#c9a84c';
+  const h = copy.color_highlight || a;
+  const theme = copy.theme || 'dark';
+  const isDark = theme === 'dark';
+  const panelBg = isDark ? '#08080f' : '#fafaf8';
+  const textColor = isDark ? '#f5f2ed' : '#1a1a1a';
+  const mutedColor = isDark ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.4)';
+  const serviceStyle = industry === 'retail' ? 'line' : 'clean';
 
-  return baseHTML(name, 'dark', `
-    ${navHTML(shortName, phone, copy, 'dark', ['Services','Gallery','Reviews','Book'])}
-    <section data-hero-split style="min-height:100vh;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;">
-      <div style="display:flex;flex-direction:column;justify-content:center;padding:8rem 3rem 5rem 4rem;background:#08080f;position:relative;z-index:2;">
-        <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:${a};margin-bottom:1rem;">${copy.tagline}</p>
-        <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,5.5vw,5.5rem);line-height:.92;letter-spacing:.02em;margin-bottom:1.25rem;color:#f5f2ed;white-space:pre-line;">${formatHeadline(copy.hero_headline, a)}</h1>
-        <p style="font-size:.9rem;color:rgba(255,255,255,.45);line-height:1.8;max-width:380px;margin-bottom:2.25rem;">${copy.hero_sub}</p>
-        <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
-          ${phone?`<a href="tel:${cleanPhone(phone)}" style="background:${a};color:#000;padding:.8rem 1.75rem;text-decoration:none;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Book — ${phone}</a>`:''}
+  return baseHTML(name, theme, `
+    ${navHTML(shortName, copy, theme, ['Services','Gallery','Reviews','Book'])}
+
+    <section style="min-height:100vh;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;" class="mob-stack">
+      <div style="display:flex;flex-direction:column;justify-content:center;padding:9rem 4rem 5rem 5rem;background:${panelBg};position:relative;z-index:2;" class="mob-pad">
+        <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:${a};margin-bottom:1.25rem;" class="fu">${copy.tagline}</p>
+        <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(3.5rem,6vw,6.5rem);line-height:.88;letter-spacing:.02em;margin-bottom:1.5rem;color:${textColor};" class="fu d1">${formatHeadline(copy.hero_headline, a)}</h1>
+        <p style="font-size:1rem;color:${mutedColor};line-height:1.8;max-width:400px;margin-bottom:2.5rem;" class="fu d2">${copy.hero_sub}</p>
+        <div style="display:flex;gap:.85rem;flex-wrap:wrap;" class="fu d3">
+          ${phone?`<a href="tel:${cleanPhone(phone)}" style="background:${a};color:${isDark?'#000':'#fff'};padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Book — ${phone}</a>`:''}
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:2.75rem;padding-top:1.75rem;border-top:1px solid rgba(255,255,255,.06);">
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:${a};line-height:1;">${rating}★</div><div style="font-size:.6rem;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Rating</div></div>
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:${a};line-height:1;">${reviewCount}</div><div style="font-size:.6rem;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Reviews</div></div>
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:${a};line-height:1;">LA</div><div style="font-size:.6rem;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Local</div></div>
+        <div style="display:grid;grid-template-columns:repeat(3,auto);gap:2.5rem;margin-top:3.5rem;padding-top:2.5rem;border-top:1px solid ${isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)'};" class="fu d4">
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.25rem;color:${a};line-height:1;">${rating}★</div><div style="font-size:.6rem;color:${mutedColor};letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Rating</div></div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.25rem;color:${a};line-height:1;">${reviewCount}</div><div style="font-size:.6rem;color:${mutedColor};letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Reviews</div></div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.25rem;color:${a};line-height:1;">LA</div><div style="font-size:.6rem;color:${mutedColor};letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Local</div></div>
         </div>
       </div>
-      <div data-hero-image style="position:relative;overflow:hidden;">
-        <div style="position:absolute;inset:0;background:${photos.hero?`url('${photos.hero}') center/cover no-repeat`:'#111'};"></div>
-        <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(8,8,15,.7) 0%,transparent 35%);"></div>
+      <div style="position:relative;overflow:hidden;min-height:500px;" class="mob-hide">
+        ${photos.hero?`<img src="${photos.hero}" alt="${name}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;"/>`:'<div style="position:absolute;inset:0;background:#111;"></div>'}
+        <div style="position:absolute;inset:0;background:linear-gradient(to right,${isDark?'rgba(8,8,15,.7)':'rgba(250,250,248,.4)'} 0%,transparent 35%);"></div>
       </div>
     </section>
-    ${servicesSection(copy, a, 'dark', 'clean')}
-    ${gallerySection(photos.gallery, name, 'dark')}
-    ${reviewsSection(reviews, rating, reviewCount, a, h, 'dark')}
-    ${contactSection(copy, place, a, h, 'dark')}
-    ${footerHTML(shortName, address, phone, 'dark', a)}
+
+    ${servicesHTML(copy, a, theme, serviceStyle)}
+    ${galleryHTML(photos.gallery, name, theme)}
+    ${reviewsHTML(reviews, rating, reviewCount, a, theme)}
+    ${contactHTML(copy, place, a, h, theme)}
+    ${footerHTML(shortName, address, phone, theme, a)}
   `);
 }
 
-// ─── TEMPLATE: WELLNESS ───────────────────────────────────────────────────────
-function renderWellness(place, copy, photos) {
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYOUT C — EDITORIAL STACK
+// Large contained photo up top, elegant text below. Best for Wellness, Pet.
+// ═══════════════════════════════════════════════════════════════════════════
+function layoutEditorial(place, copy, photos, industry) {
   const { name, shortName, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
   const p = copy.color_primary || '#7a6548';
   const a = copy.color_accent || '#c4a882';
-  const h = copy.color_highlight || '#9c7a4e';
+  const h = copy.color_highlight || p;
+  const theme = copy.theme || 'light';
+  const isDark = theme === 'dark';
+  const bg = isDark ? '#0a0a0a' : '#fafaf8';
+  const textColor = isDark ? '#f5f2ed' : '#1a1a1a';
+  const mutedColor = isDark ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.45)';
+  const isPet = industry === 'pet';
+  const headlineFont = isPet ? `'Playfair Display',Georgia,serif` : `'Playfair Display',Georgia,serif`;
 
-  return baseHTML(name, 'light', `
-    ${navHTML(shortName, phone, copy, 'light', ['Services','Gallery','Reviews','Book'])}
-    <section style="min-height:100vh;position:relative;display:flex;align-items:flex-end;overflow:hidden;">
-      <div style="position:absolute;inset:0;background:${photos.hero?`url('${photos.hero}') center 30%/cover no-repeat`:'linear-gradient(135deg,#f5f0ea,#e8ddd0)'};"></div>
-      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(250,247,243,.98) 28%,rgba(250,247,243,.15) 100%);"></div>
-      <div style="position:relative;z-index:2;padding:3.5rem 4rem 5.5rem;width:100%;">
-        <div style="max-width:560px;">
-          <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:${p};margin-bottom:.85rem;">${copy.tagline}</p>
-          <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(2.75rem,5.5vw,4.5rem);font-weight:600;line-height:1.08;letter-spacing:-.01em;color:#1a1a1a;margin-bottom:1.25rem;white-space:pre-line;">${copy.hero_headline.replace(/\\n|\n/g,'\n')}</h1>
-          <p style="font-size:.92rem;color:rgba(0,0,0,.5);line-height:1.8;max-width:420px;margin-bottom:1.75rem;">${copy.hero_sub}</p>
-          <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-            <a href="#contact" style="background:${p};color:#fff;padding:.78rem 1.75rem;text-decoration:none;font-size:.77rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Book Appointment</a>
-            ${phone?`<span style="font-size:.83rem;color:rgba(0,0,0,.45);font-weight:400;">${phone}</span>`:''}
-          </div>
-          <div style="display:flex;align-items:center;gap:.5rem;margin-top:1.75rem;padding-top:1.5rem;border-top:1px solid rgba(0,0,0,.08);">
-            <span style="color:#f59e0b;font-size:.85rem;">${'★'.repeat(Math.round(rating))}</span>
-            <span style="font-size:.78rem;color:rgba(0,0,0,.4);">${rating} · ${reviewCount} reviews on Google</span>
-          </div>
+  return baseHTML(name, theme, `
+    ${navHTML(shortName, copy, theme, ['Services','Gallery','Reviews','Book'])}
+
+    <!-- EDITORIAL HERO — photo top, text below -->
+    <section style="padding-top:5rem;background:${bg};">
+
+      <!-- Photo block — contained, prominent -->
+      <div style="margin:0 2.5rem;border-radius:16px;overflow:hidden;height:65vh;position:relative;" class="mob-pad">
+        ${photos.hero
+          ? `<img src="${photos.hero}" alt="${name}" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;"/>`
+          : `<div style="width:100%;height:100%;background:linear-gradient(135deg,${p},${a});"></div>`
+        }
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.5) 0%,transparent 50%);"></div>
+        <!-- Floating tagline over photo -->
+        <div style="position:absolute;bottom:2rem;left:2.5rem;">
+          <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.15em;padding:.4rem 1rem;border-radius:100px;">${copy.tagline}</div>
+        </div>
+        <!-- Rating badge -->
+        <div style="position:absolute;top:1.5rem;right:1.5rem;background:rgba(255,255,255,.95);padding:.6rem 1rem;border-radius:100px;display:flex;align-items:center;gap:.5rem;">
+          <span style="color:#f59e0b;font-size:.85rem;">${stars(rating)}</span>
+          <span style="font-size:.75rem;font-weight:600;color:#1a1a1a;">${rating} · ${reviewCount} reviews</span>
+        </div>
+      </div>
+
+      <!-- Text block below photo -->
+      <div style="padding:3.5rem 5rem 5rem;max-width:800px;" class="mob-pad fu">
+        <h1 style="font-family:${headlineFont};font-size:clamp(3rem,6vw,5.5rem);font-weight:700;line-height:1.02;letter-spacing:-.02em;margin-bottom:1.5rem;color:${textColor};" class="fu d1">${copy.hero_headline.replace(/\\n|\n/g,' ')}</h1>
+        <p style="font-size:1.05rem;color:${mutedColor};line-height:1.8;max-width:520px;margin-bottom:2.25rem;" class="fu d2">${copy.hero_sub}</p>
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;" class="fu d3">
+          <a href="#contact" style="background:${p};color:#fff;padding:.88rem 2rem;text-decoration:none;font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:${isPet?'100px':'3px'};">Book Appointment</a>
+          ${phone?`<span style="font-size:.88rem;color:${mutedColor};">${phone}</span>`:''}
         </div>
       </div>
     </section>
-    ${servicesSection(copy, p, 'light', 'serif')}
-    ${gallerySection(photos.gallery, name, 'light')}
-    ${reviewsSection(reviews, rating, reviewCount, p, a, 'light')}
-    ${contactSection(copy, place, p, h, 'light')}
-    ${footerHTML(shortName, address, phone, 'light', p)}
+
+    ${servicesHTML(copy, p, theme, isPet ? 'dot' : 'elegant')}
+    ${galleryHTML(photos.gallery, name, theme)}
+    ${reviewsHTML(reviews, rating, reviewCount, p, theme)}
+    ${contactHTML(copy, place, p, h, theme)}
+    ${footerHTML(shortName, address, phone, theme, p)}
   `);
 }
 
-// ─── TEMPLATE: PET ────────────────────────────────────────────────────────────
-function renderPet(place, copy, photos) {
-  const { name, shortName, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
-  const p = copy.color_primary || '#2d6a4f';
-  const a = copy.color_accent || '#74c69d';
-  const h = copy.color_highlight || '#40916c';
-
-  return baseHTML(name, 'light', `
-    ${navHTML(shortName, phone, copy, 'light', ['Services','Gallery','Reviews','Book'])}
-    <section style="min-height:100vh;position:relative;display:flex;align-items:center;overflow:hidden;">
-      <div style="position:absolute;inset:0;background:${photos.hero?`url('${photos.hero}') center/cover no-repeat`:'linear-gradient(135deg,#e8f5ef,#d1ead9)'};"></div>
-      <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(248,252,250,.97) 46%,rgba(248,252,250,.4) 100%);"></div>
-      <div style="position:relative;z-index:2;padding:8rem 4rem 5rem;max-width:640px;">
-        <div style="display:inline-block;background:${p};color:#fff;font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;padding:.35rem .85rem;border-radius:100px;margin-bottom:1.25rem;">${copy.tagline}</div>
-        <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(2.75rem,5.5vw,4.5rem);font-weight:600;line-height:1.08;letter-spacing:-.01em;color:#1a1a1a;margin-bottom:1.25rem;white-space:pre-line;">${copy.hero_headline.replace(/\\n|\n/g,'\n')}</h1>
-        <p style="font-size:.92rem;color:rgba(0,0,0,.5);line-height:1.8;max-width:440px;margin-bottom:1.75rem;">${copy.hero_sub}</p>
-        <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
-          <a href="#contact" style="background:${p};color:#fff;padding:.78rem 1.75rem;text-decoration:none;font-size:.77rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;border-radius:100px;">Book a Groom</a>
-          ${phone?`<a href="tel:${cleanPhone(phone)}" style="border:1.5px solid rgba(0,0,0,.12);color:#333;padding:.78rem 1.75rem;text-decoration:none;font-size:.77rem;letter-spacing:.08em;text-transform:uppercase;border-radius:100px;">${phone}</a>`:''}
-        </div>
-        <div style="display:flex;align-items:center;gap:.5rem;margin-top:1.75rem;padding-top:1.5rem;border-top:1px solid rgba(0,0,0,.08);">
-          <span style="color:#f59e0b;font-size:.85rem;">${'★'.repeat(Math.round(rating))}</span>
-          <span style="font-size:.78rem;color:rgba(0,0,0,.4);">${rating} · ${reviewCount} reviews on Google</span>
-        </div>
-      </div>
-    </section>
-    ${servicesSection(copy, p, 'light', 'dot')}
-    ${gallerySection(photos.gallery, name, 'light')}
-    ${reviewsSection(reviews, rating, reviewCount, p, a, 'light')}
-    ${contactSection(copy, place, p, h, 'light')}
-    ${footerHTML(shortName, address, phone, 'light', p)}
-  `);
-}
-
-// ─── TEMPLATE: RETAIL ─────────────────────────────────────────────────────────
-function renderRetail(place, copy, photos) {
-  const { name, shortName, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
-  const p = copy.color_primary || '#6b4c3b';
-  const a = copy.color_accent || '#c4a882';
-  const h = copy.color_highlight || '#8b5e3c';
-
-  return baseHTML(name, 'light', `
-    ${navHTML(shortName, phone, copy, 'light', ['Shop','Gallery','Reviews','Visit'])}
-    <section style="min-height:100vh;position:relative;display:flex;align-items:center;overflow:hidden;">
-      <div style="position:absolute;inset:0;background:${photos.hero?`url('${photos.hero}') center/cover no-repeat`:'linear-gradient(135deg,#f5f0ea,#ede5d5)'};"></div>
-      <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(252,249,245,.97) 46%,rgba(252,249,245,.4) 100%);"></div>
-      <div style="position:relative;z-index:2;padding:8rem 4rem 5rem;max-width:640px;">
-        <div style="display:inline-block;background:${p};color:#fff;font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;padding:.35rem .85rem;border-radius:2px;margin-bottom:1.25rem;">${copy.tagline}</div>
-        <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(2.75rem,5.5vw,4.75rem);font-weight:600;line-height:1.05;letter-spacing:-.01em;color:#1a1a1a;margin-bottom:1.25rem;white-space:pre-line;">${copy.hero_headline.replace(/\\n|\n/g,'\n')}</h1>
-        <p style="font-size:.92rem;color:rgba(0,0,0,.5);line-height:1.8;max-width:440px;margin-bottom:1.75rem;">${copy.hero_sub}</p>
-        <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
-          <a href="#contact" style="background:${p};color:#fff;padding:.78rem 1.75rem;text-decoration:none;font-size:.77rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;border-radius:2px;">Visit Us</a>
-          ${phone?`<a href="tel:${cleanPhone(phone)}" style="border:1px solid rgba(0,0,0,.15);color:#333;padding:.78rem 1.75rem;text-decoration:none;font-size:.77rem;letter-spacing:.06em;text-transform:uppercase;border-radius:2px;">${phone}</a>`:''}
-        </div>
-        <div style="display:flex;align-items:center;gap:.5rem;margin-top:1.75rem;padding-top:1.5rem;border-top:1px solid rgba(0,0,0,.08);">
-          <span style="color:#f59e0b;font-size:.85rem;">${'★'.repeat(Math.round(rating))}</span>
-          <span style="font-size:.78rem;color:rgba(0,0,0,.4);">${rating} · ${reviewCount} reviews on Google</span>
-        </div>
-      </div>
-    </section>
-    ${servicesSection(copy, p, 'light', 'line')}
-    ${gallerySection(photos.gallery, name, 'light')}
-    ${reviewsSection(reviews, rating, reviewCount, p, a, 'light')}
-    ${contactSection(copy, place, p, h, 'light')}
-    ${footerHTML(shortName, address, phone, 'light', p)}
-  `);
+// ─── RENDERER DISPATCH ───────────────────────────────────────────────────────
+function renderDemo(place, copy, photos, industry, layoutOverride) {
+  const layout = layoutOverride || defaultLayouts[industry] || 'fullbleed';
+  switch(layout) {
+    case 'split':     return layoutSplit(place, copy, photos, industry);
+    case 'editorial': return layoutEditorial(place, copy, photos, industry);
+    default:          return layoutFullBleed(place, copy, photos, industry);
+  }
 }
 
 // ─── MAIN ROUTE ──────────────────────────────────────────────────────────────
 app.get('/demo', async (req, res) => {
-  const { place_id, refresh } = req.query;
-  if (!place_id) return res.status(400).send('Missing place_id. Usage: /demo?place_id=YOUR_PLACE_ID');
+  const { place_id, refresh, layout } = req.query;
+  if (!place_id) return res.status(400).send('Missing place_id');
 
-  // Serve from cache if available (skip cache with ?refresh=true)
-  if (demoCache.has(place_id) && refresh !== 'true') {
-    console.log(`⚡ Cache hit: ${place_id}`);
+  const cacheKey = `${place_id}:${layout||'default'}`;
+
+  if (demoCache.has(cacheKey) && refresh !== 'true') {
+    console.log(`⚡ Cache hit: ${cacheKey}`);
     res.setHeader('Content-Type', 'text/html');
-    return res.send(demoCache.get(place_id));
+    return res.send(demoCache.get(cacheKey));
   }
 
   try {
-    console.log(`\n━━━ ${place_id}`);
+    console.log(`\n━━━ ${place_id} [layout:${layout||'auto'}]`);
     const place = await getPlaceDetails(place_id);
     const industry = detectIndustry(place);
     console.log(`✓ ${place.displayName?.text} → ${industry}`);
 
     if (industry === 'unsupported') {
-      return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet"></head><body style="font-family:'DM Sans',sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><div style="font-size:2rem;margin-bottom:1rem;">👋</div><h1 style="font-size:1.75rem;font-weight:800;margin-bottom:.75rem;">Coming Soon</h1><p style="color:rgba(23,50,77,.6);max-width:380px;line-height:1.7;margin:0 auto 1.5rem;">We're working on templates for restaurants and fitness businesses. In the meantime, we support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;font-size:.875rem;">Learn More at HelloSite</a></div></body></html>`);
+      return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We're working on templates for this business type. We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
     }
 
-    const allPhotoUrls = (place.photos||[]).slice(0,6).map(p=>getPhotoUrl(p.name,1200));
+    const allPhotoUrls = (place.photos||[]).slice(0,8).map(p=>getPhotoUrl(p.name,1400));
     const [photos, copy] = await Promise.all([
       classifyPhotos(allPhotoUrls, industry),
       generateCopy(place, industry)
     ]);
 
-    const renderers = { trades:renderTrades, grooming:renderGrooming, wellness:renderWellness, pet:renderPet, retail:renderRetail };
-    const html = (renderers[industry]||renderRetail)(place, copy, photos);
+    const html = renderDemo(place, copy, photos, industry, layout);
+    demoCache.set(cacheKey, html);
+    console.log(`✓ Done — ${industry} / ${layout||defaultLayouts[industry]} (cached)`);
 
-    // Cache and serve
-    demoCache.set(place_id, html);
-    console.log(`✓ Done — ${industry} (cached)`);
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
 
@@ -556,29 +554,40 @@ app.get('/demo', async (req, res) => {
 
 app.get('/cache', (req, res) => {
   const keys = [...demoCache.keys()];
-  res.send(`<style>body{font-family:monospace;padding:2rem;background:#0d0d0d;color:#f5f2ed;}a{color:#4EA7FF;}</style>
-    <h2>Cache status: ${keys.length} demos cached</h2>
-    <ul style="line-height:2;margin-top:1rem;">${keys.map(k => `<li>${k} <a href="/demo?place_id=${k}&refresh=true">↺ refresh</a></li>`).join('')}</ul>
-    <p style="margin-top:1rem;color:#444;font-size:.8rem;">Add ?refresh=true to any demo URL to regenerate and re-cache.</p>`);
+  res.send(`<style>body{font-family:monospace;padding:2rem;background:#0a0a0a;color:#f5f2ed;}a{color:#4EA7FF;}</style>
+    <h2>Cache — ${keys.length} demos</h2>
+    <ul style="line-height:2.2;margin-top:1rem;">${keys.map(k=>{
+      const [pid,layout]=k.split(':');
+      return `<li>${k} <a href="/demo?place_id=${pid}&layout=${layout==='default'?'':layout}">[view]</a> <a href="/demo?place_id=${pid}&layout=${layout==='default'?'':layout}&refresh=true">[refresh]</a></li>`;
+    }).join('')}</ul>`);
 });
 
 app.get('/', (req, res) => {
-  const cached = demoCache.size;
-  res.send(`<style>body{font-family:monospace;padding:2rem;background:#0d0d0d;color:#f5f2ed;}a{color:#c94f1a;}code{background:#1a1a1a;padding:.2rem .4rem;border-radius:2px;}</style>
-    <h2>⬡ HelloSite Demo Engine v3</h2>
-    <p style="color:#666;margin:.5rem 0 1.5rem;">Generates demo sites from Google Place IDs · <a href="/cache" style="color:#4EA7FF;">${cached} cached</a></p>
-    <p><strong>Usage:</strong> <code>/demo?place_id=GOOGLE_PLACE_ID</code></p>
-    <p style="color:#555;font-size:.8rem;margin-top:.5rem;">Add <code>?refresh=true</code> to force regeneration.</p>
-    <br>
-    <p style="color:#444;margin-bottom:.5rem;">Test IDs:</p>
+  res.send(`<style>body{font-family:monospace;padding:2rem;background:#0a0a0a;color:#f5f2ed;}a{color:#c94f1a;}code{background:#111;padding:.2rem .4rem;border-radius:2px;}h3{color:#888;margin:1.5rem 0 .5rem;font-size:.8rem;letter-spacing:.1em;}</style>
+    <h2>⬡ HelloSite Demo Engine v4</h2>
+    <p style="color:#555;margin:.5rem 0 1.5rem;">3 layout formats · in-memory cache · smarter photo selection · <a href="/cache" style="color:#4EA7FF;">${demoCache.size} cached</a></p>
+    <p><strong>Usage:</strong> <code>/demo?place_id=ID</code> or <code>/demo?place_id=ID&layout=split|editorial|fullbleed</code></p>
+    <p style="color:#444;font-size:.8rem;margin-top:.4rem;">Add <code>?refresh=true</code> to bust cache.</p>
+    <h3>LAYOUT A — FULLBLEED (trades default)</h3>
     <ul style="line-height:2.2;color:#666;">
-      <li><a href="/demo?place_id=ChIJj-aliA_PwoARI36KBu4KTcQ">TNT Auto Repair</a> — trades</li>
-      <li><a href="/demo?place_id=ChIJz6ca4qC5woARRewY64ReE94">Bushwick Barbershop</a> — grooming</li>
-      <li><a href="/demo?place_id=ChIJuZ--3qnHwoARRyWOYPuvQVk">Làmay Nail Spa</a> — wellness</li>
-      <li><a href="/demo?place_id=ChIJF6NXG_jHwoARVsJdvFTe1tA">21Pooch</a> — pet</li>
-      <li><a href="/demo?place_id=ChIJ9cAF4wyTwoAR_Jdg-iCVg-A">Adobe Design</a> — retail</li>
+      <li><a href="/demo?place_id=ChIJj-aliA_PwoARI36KBu4KTcQ">TNT Auto Repair</a></li>
+    </ul>
+    <h3>LAYOUT B — SPLIT (grooming + retail default)</h3>
+    <ul style="line-height:2.2;color:#666;">
+      <li><a href="/demo?place_id=ChIJz6ca4qC5woARRewY64ReE94">Bushwick Barbershop</a></li>
+      <li><a href="/demo?place_id=ChIJ9cAF4wyTwoAR_Jdg-iCVg-A">Adobe Design</a></li>
+    </ul>
+    <h3>LAYOUT C — EDITORIAL (wellness + pet default)</h3>
+    <ul style="line-height:2.2;color:#666;">
+      <li><a href="/demo?place_id=ChIJuZ--3qnHwoARRyWOYPuvQVk">Làmay Nail Spa</a></li>
+      <li><a href="/demo?place_id=ChIJF6NXG_jHwoARVsJdvFTe1tA">21Pooch</a></li>
+    </ul>
+    <h3>TRY ANY LAYOUT ON ANY BUSINESS</h3>
+    <ul style="line-height:2.2;color:#666;">
+      <li><a href="/demo?place_id=ChIJj-aliA_PwoARI36KBu4KTcQ&layout=editorial">TNT → editorial</a></li>
+      <li><a href="/demo?place_id=ChIJuZ--3qnHwoARRyWOYPuvQVk&layout=split">Làmay → split</a></li>
     </ul>`);
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`HelloSite Demo Engine v3 on port ${PORT}`));
+app.listen(PORT, () => console.log(`HelloSite Demo Engine v4 on port ${PORT}`));
