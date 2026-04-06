@@ -227,6 +227,7 @@ function baseHTML(name, theme, body) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${name}</title>
+<link rel="icon" type="image/x-icon" href="https://www.gethellosite.com/favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -528,6 +529,7 @@ function layoutSplit(place, copy, photos, industry) {
     ${reviewsHTML(reviews, rating, reviewCount, a, theme)}
     ${contactHTML(copy, place, a, h, theme)}
     ${footerHTML(shortName, address, phone, theme, a)}
+    <div style="position:fixed;bottom:20px;right:20px;z-index:9999;background:${a};color:${isDark?'#000':'#fff'};padding:13px 22px;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:.03em;box-shadow:0 8px 28px ${a}44;font-family:system-ui,sans-serif;line-height:1.4;text-align:center;max-width:220px;">✦ Reply to the email<br><span style="font-size:11px;opacity:.85;font-weight:400;">to claim this site</span></div>
   `);
 }
 
