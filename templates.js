@@ -111,7 +111,7 @@ function templateTrades(place, copy, photos) {
   const services = copy.services || [];
   const serviceDescs = copy.service_descs || [];
 
-const BG:'#13141A', SURFACE:'#1C1E26', CARD:'#242830', ACCENT:'#B87D2E', TEXT:'#E8E2D8', MUTED:'#7A7A82', BORDER:'#2C2E38'
+const BG='#0D1B2E',SURFACE='#162438',CARD='#1C2E44',ACCENT='#CC2828',GOLD='#E8EDF5',TEXT='#EEF2F7',MUTED='#7A8FA8',BORDER='#243450';
 
   const cp = cleanPhone(phone);
   const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
