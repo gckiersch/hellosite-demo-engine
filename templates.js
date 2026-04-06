@@ -40,7 +40,7 @@ function galleryStrip(gallery){
   return`<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:6px;">${gallery.slice(0,3).map(url=>`<div style="height:220px;overflow:hidden;"><img src="${url}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}</div>`;
 }
 function claimCTA(accent){
-  return`<a href="https://gethellosite.com/#demo" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:${accent};color:#fff;padding:13px 24px;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 8px 28px ${accent}44;text-decoration:none;font-family:system-ui,sans-serif;white-space:nowrap;">✦ Claim This Site</a>`;
+  return`<div style="position:fixed;bottom:20px;right:20px;z-index:9999;background:${accent};color:#fff;padding:13px 22px;border-radius:6px;font-size:13px;font-weight:600;letter-spacing:.03em;box-shadow:0 8px 28px ${accent}44;font-family:system-ui,sans-serif;white-space:nowrap;line-height:1.4;text-align:center;max-width:220px;">✦ Reply to this email<br><span style="font-size:11px;opacity:.85;font-weight:400;">to claim this site</span></div>`;
 }
 function wrapHTML(name,fonts,extraCSS,body){
   return`<!DOCTYPE html>
