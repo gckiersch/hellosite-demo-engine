@@ -582,10 +582,16 @@ function renderDemo(place, copy, photos, industry, layoutOverride) {
   switch(layout) {
     // ── NEW TEMPLATES ──
     case 'trades':          return templateTrades(place, copy, photos, industry);
-    case 'grooming':        return templateGrooming(place, copy, photos, industry);
+    case 'grooming':
+      copy.color_primary = '#2C2C2C'; copy.color_accent = '#2C2C2C'; copy.color_highlight = '#555555'; copy.theme = 'light';
+      return layoutSplit(place, copy, photos, industry);
     case 'wellness':        return templateWellness(place, copy, photos, industry);
-    case 'pet':             return templatePet(place, copy, photos, industry);
-    case 'retail':          return templateRetail(place, copy, photos, industry);
+    case 'pet':
+      copy.color_primary = '#2B5FC7'; copy.color_accent = '#2B5FC7'; copy.color_highlight = '#3B6FD7'; copy.theme = 'light';
+      return layoutSplit(place, copy, photos, industry);
+    case 'retail':
+      copy.color_primary = '#9B3054'; copy.color_accent = '#9B3054'; copy.color_highlight = '#B03060'; copy.theme = 'light';
+      return layoutSplit(place, copy, photos, industry);
     case 'realestate':      return templateRealEstate(place, copy, photos, industry);
     // ── LEGACY (still accessible via ?layout=) ──
     case 'split':           return layoutSplit(place, copy, photos, industry);
