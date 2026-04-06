@@ -111,14 +111,7 @@ function templateTrades(place, copy, photos) {
   const services = copy.services || [];
   const serviceDescs = copy.service_descs || [];
 
-  const BG      = '#111214';
-  const SURFACE = '#1A1C20';
-  const CARD    = '#222428';
-  const ACCENT  = '#E8521A';
-  const GOLD    = '#D4930A';
-  const TEXT    = '#F2EEE8';
-  const MUTED   = '#8A8A90';
-  const BORDER  = '#2A2C30';
+const BG='#0D1B2E',SURFACE='#162438',CARD='#1C2E44',ACCENT='#CC2828',GOLD='#E8EDF5',TEXT='#EEF2F7',MUTED='#7A8FA8',BORDER='#243450';
 
   const cp = cleanPhone(phone);
   const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
