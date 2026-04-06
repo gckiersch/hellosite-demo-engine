@@ -1,4 +1,12 @@
 const express = require('express');
+const {
+  templateTrades,
+  templateGrooming,
+  templateWellness,
+  templatePet,
+  templateRetail,
+  templateRealEstate,
+} = require('./templates');
 const app = express();
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
@@ -31,11 +39,11 @@ function detectIndustry(place) {
 }
 
 const defaultLayouts = {
-  trades:   'fullbleed',
-  grooming: 'split',
-  wellness: 'wellness',  // FIX #9 — dedicated wellness layout
-  pet:      'split',
-  retail:   'split',
+  trades:   'trades',
+  grooming: 'grooming',
+  wellness: 'wellness',
+  pet:      'pet',
+  retail:   'retail',
 };
 
 // Industry eyebrow labels — FIX #1
@@ -302,7 +310,6 @@ function galleryHTML(images, name, theme) {
   const imgs = images.slice(0,4);
 
   if (imgs.length >= 4) {
-    // Masonry: big left, 3 right — all same visual height using aspect-ratio
     return `<div style="padding:0 4rem 5rem;background:${bg};" class="mob-pad">
       <div style="display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:auto;gap:6px;">
         <div style="grid-row:1/3;aspect-ratio:3/4;overflow:hidden;border-radius:4px;">
@@ -431,7 +438,7 @@ function footerHTML(shortName, address, phone, theme, primary) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LAYOUT A — FULL BLEED (Trades)
+// LEGACY LAYOUT A — FULL BLEED (kept for ?layout=fullbleed override)
 // ═══════════════════════════════════════════════════════════════════════════
 function layoutFullBleed(place, copy, photos, industry) {
   const { name, shortName, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
@@ -471,9 +478,7 @@ function layoutFullBleed(place, copy, photos, industry) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LAYOUT B — SPLIT PANEL (Grooming, Pet, Retail)
-// FIX #5 — single photo fills right panel cleanly
-// FIX #6 — retail CTA = "Call Us", FIX #7 — pet CTA = "Book a Groom"
+// LEGACY LAYOUT B — SPLIT PANEL (kept for ?layout=split override)
 // ═══════════════════════════════════════════════════════════════════════════
 function layoutSplit(place, copy, photos, industry) {
   const { name, shortName, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
@@ -487,7 +492,6 @@ function layoutSplit(place, copy, photos, industry) {
   const textColor = isDark ? '#f5f2ed' : '#1a1a1a';
   const serviceStyle = industry === 'retail' ? 'line' : 'clean';
 
-  // Industry-specific CTA label
   const ctaLabel = industry === 'retail' ? `Call Us — ${phone}` :
                    industry === 'pet' ? `Book a Groom — ${phone}` :
                    `Book — ${phone}`;
@@ -512,7 +516,6 @@ function layoutSplit(place, copy, photos, industry) {
           <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.25rem;color:${a};line-height:1;">LA</div><div style="font-size:.6rem;color:${mutedColor};letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Local</div></div>
         </div>
       </div>
-      <!-- FIX #5 — single img tag, no extra elements causing color bleed -->
       <div style="position:relative;overflow:hidden;min-height:500px;" class="mob-hide">
         ${photos.hero
           ? `<img src="${photos.hero}" alt="${name}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;"/><div style="position:absolute;inset:0;background:linear-gradient(to right,${isDark?'rgba(8,8,15,.65)':'rgba(250,250,248,.3)'} 0%,transparent 30%);"></div>`
@@ -529,8 +532,7 @@ function layoutSplit(place, copy, photos, industry) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LAYOUT C — WELLNESS (Full bleed photo with text overlay)
-// FIX #9 — text over image, luxury spa feeling
+// LEGACY LAYOUT C — WELLNESS (kept for ?layout=legacy_wellness override)
 // ═══════════════════════════════════════════════════════════════════════════
 function layoutWellness(place, copy, photos, industry) {
   const { name, shortName, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
@@ -544,21 +546,17 @@ function layoutWellness(place, copy, photos, industry) {
 
     <!-- WELLNESS HERO — full bleed, text overlaid at bottom -->
     <section style="min-height:100vh;position:relative;display:flex;align-items:flex-end;overflow:hidden;">
-      <!-- Full bleed photo -->
       ${photos.hero
         ? `<div style="position:absolute;inset:0;background:url('${photos.hero}') center/cover no-repeat;"></div>`
         : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,${p},${a});"></div>`
       }
-      <!-- Strong gradient from bottom for text legibility -->
       <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,8,6,.92) 0%,rgba(10,8,6,.6) 35%,rgba(10,8,6,.1) 65%,transparent 100%);"></div>
 
-      <!-- Rating badge top right -->
       <div style="position:absolute;top:5rem;right:2.5rem;background:rgba(255,255,255,.95);padding:.6rem 1.1rem;border-radius:100px;display:flex;align-items:center;gap:.5rem;z-index:2;">
         <span style="color:#f59e0b;font-size:.9rem;">${stars(rating)}</span>
         <span style="font-size:.78rem;font-weight:600;color:#1a1a1a;">${rating} · ${reviewCount} reviews</span>
       </div>
 
-      <!-- Text anchored at bottom -->
       <div style="position:relative;z-index:2;padding:0 5rem 5rem;width:100%;max-width:800px;" class="mob-pad fu">
         <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.15em;padding:.38rem 1rem;border-radius:100px;margin-bottom:1.25rem;">${copy.tagline}</div>
         <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(3.5rem,7vw,6rem);font-weight:700;line-height:1.0;letter-spacing:-.02em;color:#fff;margin-bottom:1.25rem;" class="fu d1">${copy.hero_headline.replace(/\\n|\n/g,'<br>')}</h1>
@@ -582,10 +580,19 @@ function layoutWellness(place, copy, photos, industry) {
 function renderDemo(place, copy, photos, industry, layoutOverride) {
   const layout = layoutOverride || defaultLayouts[industry] || 'fullbleed';
   switch(layout) {
-    case 'split':     return layoutSplit(place, copy, photos, industry);
-    case 'wellness':  return layoutWellness(place, copy, photos, industry);
-    case 'editorial': return layoutWellness(place, copy, photos, industry); // alias
-    default:          return layoutFullBleed(place, copy, photos, industry);
+    // ── NEW TEMPLATES ──
+    case 'trades':          return templateTrades(place, copy, photos, industry);
+    case 'grooming':        return templateGrooming(place, copy, photos, industry);
+    case 'wellness':        return templateWellness(place, copy, photos, industry);
+    case 'pet':             return templatePet(place, copy, photos, industry);
+    case 'retail':          return templateRetail(place, copy, photos, industry);
+    case 'realestate':      return templateRealEstate(place, copy, photos, industry);
+    // ── LEGACY (still accessible via ?layout=) ──
+    case 'split':           return layoutSplit(place, copy, photos, industry);
+    case 'fullbleed':       return layoutFullBleed(place, copy, photos, industry);
+    case 'legacy_wellness': return layoutWellness(place, copy, photos, industry);
+    case 'editorial':       return layoutWellness(place, copy, photos, industry);
+    default:                return layoutFullBleed(place, copy, photos, industry);
   }
 }
 
@@ -644,18 +651,24 @@ app.get('/cache', (req, res) => {
 app.get('/', (req, res) => {
   res.send(`<style>body{font-family:monospace;padding:2rem;background:#0a0a0a;color:#f5f2ed;}a{color:#c94f1a;}code{background:#111;padding:.2rem .4rem;border-radius:2px;}h3{color:#555;margin:1.5rem 0 .5rem;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;}</style>
     <h2>⬡ HelloSite Demo Engine v5</h2>
-    <p style="color:#444;margin:.5rem 0 1.5rem;">3 layouts · smart photo selection · cached · <a href="/cache" style="color:#4EA7FF;">${demoCache.size} cached</a></p>
-    <p><strong>Usage:</strong> <code>/demo?place_id=ID</code> — add <code>&layout=split|wellness|fullbleed</code> to override · <code>&refresh=true</code> to bust cache</p>
-    <h3>Fullbleed</h3>
+    <p style="color:#444;margin:.5rem 0 1.5rem;">6 templates · smart photo selection · cached · <a href="/cache" style="color:#4EA7FF;">${demoCache.size} cached</a></p>
+    <p><strong>Usage:</strong> <code>/demo?place_id=ID</code> — add <code>&layout=split|fullbleed|legacy_wellness</code> to use old layouts · <code>&refresh=true</code> to bust cache</p>
+    <h3>Trades</h3>
     <ul style="line-height:2.2;color:#666;"><li><a href="/demo?place_id=ChIJj-aliA_PwoARI36KBu4KTcQ">TNT Auto Repair</a> — trades</li></ul>
-    <h3>Split</h3>
+    <h3>Grooming</h3>
     <ul style="line-height:2.2;color:#666;">
       <li><a href="/demo?place_id=ChIJz6ca4qC5woARRewY64ReE94">Bushwick Barbershop</a> — grooming</li>
-      <li><a href="/demo?place_id=ChIJF6NXG_jHwoARVsJdvFTe1tA">21Pooch</a> — pet</li>
-      <li><a href="/demo?place_id=ChIJ9cAF4wyTwoAR_Jdg-iCVg-A">Adobe Design</a> — retail</li>
     </ul>
     <h3>Wellness</h3>
-    <ul style="line-height:2.2;color:#666;"><li><a href="/demo?place_id=ChIJuZ--3qnHwoARRyWOYPuvQVk">Làmay Nail Spa</a> — wellness</li></ul>`);
+    <ul style="line-height:2.2;color:#666;"><li><a href="/demo?place_id=ChIJuZ--3qnHwoARRyWOYPuvQVk">Làmay Nail Spa</a> — wellness</li></ul>
+    <h3>Pet</h3>
+    <ul style="line-height:2.2;color:#666;">
+      <li><a href="/demo?place_id=ChIJF6NXG_jHwoARVsJdvFTe1tA">21Pooch</a> — pet</li>
+    </ul>
+    <h3>Retail</h3>
+    <ul style="line-height:2.2;color:#666;">
+      <li><a href="/demo?place_id=ChIJ9cAF4wyTwoAR_Jdg-iCVg-A">Adobe Design</a> — retail</li>
+    </ul>`);
 });
 
 const PORT = process.env.PORT || 3000;
