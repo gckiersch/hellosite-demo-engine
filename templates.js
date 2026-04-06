@@ -1,14 +1,7 @@
 /**
- * HelloSite — v2 Demo Templates
- * 6 industry-specific templates with distinct visual identities.
- * Drop-in replacements for layoutFullBleed / layoutSplit / layoutWellness.
- *
- * Usage in server.js:
- *   const { templateTrades, templateGrooming, templateWellness,
- *           templatePet, templateRetail, templateRealEstate } = require('./templates');
- *
- * Each function signature matches existing layouts:
- *   fn(place, copy, photos, industry) → full HTML string
+ * HelloSite — Demo Templates
+ * templateTrades: v3 (conversion-focused, full-bleed hero, mobile-first)
+ * templateGrooming, Wellness, Pet, Retail, RealEstate: v2 (unchanged)
  */
 
 'use strict';
@@ -30,10 +23,9 @@ function extractPlaceData(place) {
 
 function cleanPhone(p) { return (p || '').replace(/\D/g, ''); }
 function stars(n) { return '★'.repeat(Math.round(n || 5)); }
-function esc(s) { return (s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function headline(h, color) {
-  // Colorise second line — matches existing formatHeadline behaviour
   return (h || '').split(/\\n|\n/)
     .map((l, i) => i === 1 ? `<span style="color:${color};">${esc(l)}</span>` : esc(l))
     .join('<br>');
@@ -44,10 +36,11 @@ function bestReview(reviews) {
   const sorted = pool.sort((a, b) =>
     (b.text?.text || '').length - (a.text?.text || '').length
   );
-  const pick = sorted[0] || reviews[0] || {};
+  const pick = sorted[0] || (reviews || [])[0] || {};
   return {
-    text:   (pick.text?.text || '').slice(0, 220),
+    text:   (pick.text?.text || '').slice(0, 260),
     author: pick.authorAttribution?.displayName || 'Local Customer',
+    rating: pick.rating || 5,
   };
 }
 
@@ -62,11 +55,11 @@ function galleryStrip(gallery, border) {
   </div>`;
 }
 
-function claimCTA(accent, textColor = '#fff') {
+function claimCTA(accent, textColor) {
   return `
   <a href="https://gethellosite.com/#demo"
      style="position:fixed;bottom:20px;right:20px;z-index:9999;
-            background:${accent};color:${textColor};
+            background:${accent};color:${textColor || '#fff'};
             padding:13px 24px;border-radius:6px;
             font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
             box-shadow:0 8px 32px ${accent}55;text-decoration:none;
@@ -74,9 +67,6 @@ function claimCTA(accent, textColor = '#fff') {
     ✦ Claim This Site
   </a>`;
 }
-
-// ─── SHARED BASE HTML ─────────────────────────────────────────────────────────
-// Adds new fonts on top of the existing baseHTML font stack.
 
 function wrapHTML(name, fonts, extraCSS, body) {
   return `<!DOCTYPE html>
@@ -110,112 +100,275 @@ function wrapHTML(name, fonts, extraCSS, body) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 1. TRADES — Dark · Oswald · Orange
+// 1. TRADES — v3
+// Full-bleed hero · Phone prominent · Trust signals in viewport · Mobile-first
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function templateTrades(place, copy, photos) {
-  const { name, shortName, phone, address, rating, reviewCount, reviews, hours } = extractPlaceData(place);
+  const { name, shortName, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
+  const allHours = (place.regularOpeningHours?.weekdayDescriptions || []);
   const review = bestReview(reviews);
   const services = copy.services || [];
+  const serviceDescs = copy.service_descs || [];
 
-  const BG = '#0F1117', SURFACE = '#171B27', ACCENT = '#F97316';
-  const TEXT = '#F8FAFC', MUTED = '#94A3B8', BORDER = '#2A2D3A';
+  const BG      = '#111214';
+  const SURFACE = '#1A1C20';
+  const CARD    = '#222428';
+  const ACCENT  = '#E8521A';
+  const GOLD    = '#D4930A';
+  const TEXT    = '#F2EEE8';
+  const MUTED   = '#8A8A90';
+  const BORDER  = '#2A2C30';
 
-  return wrapHTML(name,
-    'family=Oswald:wght@500;700&family=DM+Sans:wght@400;500;600',
-    `body{background:${BG};color:${TEXT};font-family:'DM Sans',sans-serif;}`,
-    `
-  <!-- ANNOUNCEMENT BAR -->
-  <div style="background:${ACCENT};padding:9px 28px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
-    <span style="font-family:'Oswald',sans-serif;font-size:12px;font-weight:500;color:#fff;letter-spacing:.12em;text-transform:uppercase;" class="mob-hide">
-      ⚡ Free Estimates · Licensed & Insured · Same-Day Service
-    </span>
-    <a href="tel:${cleanPhone(phone)}" style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;color:#fff;">${esc(phone)}</a>
-  </div>
+  const cp = cleanPhone(phone);
+  const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
 
-  <!-- NAV -->
-  <div style="padding:16px 36px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${BORDER};">
-    <div>
-      <div style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.08em;">${esc(name.toUpperCase())}</div>
-      <div style="font-size:11px;color:${MUTED};letter-spacing:.07em;margin-top:2px;">${esc(copy.tagline || '')}</div>
-    </div>
-    <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:4px;font-family:'Oswald',sans-serif;font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;">CALL NOW</a>
-  </div>
+  function starsHTML(n, color, size) {
+    return `<span style="color:${color};font-size:${size || 16}px;letter-spacing:2px;">${'★'.repeat(Math.round(n || 5))}</span>`;
+  }
 
-  <!-- HERO -->
-  <div style="padding:56px 36px 44px;max-width:900px;margin:0 auto;" class="mob-pad">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;" class="fu">
-      <span style="color:${ACCENT};font-size:17px;letter-spacing:2px;">${stars(rating)}</span>
-      <span style="color:${MUTED};font-size:13px;">${rating} · ${reviewCount} Google reviews</span>
-    </div>
-    <h1 style="font-family:'Oswald',sans-serif;font-size:clamp(44px,7vw,76px);font-weight:700;line-height:1.02;margin-bottom:18px;" class="fu d1">
-      ${headline(copy.hero_headline, ACCENT)}
-    </h1>
-    <div style="width:56px;height:4px;background:${ACCENT};margin-bottom:20px;" class="fu d2"></div>
-    <p style="font-size:16px;color:${MUTED};max-width:460px;line-height:1.75;margin-bottom:32px;" class="fu d2">${esc(copy.hero_sub || '')}</p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;" class="fu d3">
-      ${['✓ Licensed & Insured','✓ 5-Star Rated','✓ Same-Day Available','✓ Free Estimates'].map(b =>
-        `<span style="background:${SURFACE};border:1px solid ${BORDER};padding:7px 14px;border-radius:4px;font-size:12px;font-weight:600;">${b}</span>`
-      ).join('')}
-    </div>
-  </div>
+  function hoursRows(hoursArr) {
+    if (!hoursArr || !hoursArr.length) return `<p style="font-size:13px;color:${MUTED};">Call for hours</p>`;
+    return hoursArr.map(h => {
+      const idx  = h.indexOf(':');
+      const day  = idx > -1 ? h.slice(0, idx) : h;
+      const time = idx > -1 ? h.slice(idx + 1).trim() : '';
+      const closed = time.toLowerCase().includes('closed');
+      return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid ${BORDER};">
+        <span style="font-size:13px;color:${MUTED};">${esc(day)}</span>
+        <span style="font-size:13px;font-weight:600;color:${closed ? MUTED : TEXT};">${esc(time) || 'Closed'}</span>
+      </div>`;
+    }).join('');
+  }
 
-  <!-- HERO PHOTO STRIP -->
-  ${photos.hero ? `
-  <div style="height:320px;background:url('${photos.hero}') center/cover no-repeat;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};"></div>
-  ` : ''}
-
-  <!-- SERVICES -->
-  <div style="background:${SURFACE};padding:48px 36px;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
-    <div style="max-width:900px;margin:0 auto;">
-      <p style="font-family:'Oswald',sans-serif;font-size:11px;font-weight:700;color:${ACCENT};letter-spacing:.22em;text-transform:uppercase;margin-bottom:8px;">${esc(copy.services_label || 'SERVICES')}</p>
-      <p style="font-size:14px;color:${MUTED};margin-bottom:28px;">${esc(copy.hero_sub || '')}</p>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" class="g3">
-        ${services.map((s, i) => `
-        <div style="background:${BG};border:1px solid ${BORDER};padding:18px 20px;border-radius:6px;">
-          <div style="font-size:13px;font-weight:600;margin-bottom:5px;">${esc(s)}</div>
-          ${copy.service_descs?.[i] ? `<div style="font-size:11px;color:${MUTED};line-height:1.5;">${esc(copy.service_descs[i])}</div>` : ''}
+  function galleryMasonry(gallery) {
+    if (!gallery || !gallery.length) return '';
+    const imgs = gallery.slice(0, 4);
+    if (imgs.length >= 4) {
+      return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:200px 200px;gap:4px;">
+        <div style="grid-row:1/3;overflow:hidden;">
+          <img src="${imgs[0]}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .5s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'"/>
+        </div>
+        ${imgs.slice(1).map(url => `<div style="overflow:hidden;">
+          <img src="${url}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .5s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'"/>
         </div>`).join('')}
-      </div>
-    </div>
+      </div>`;
+    }
+    return `<div style="display:grid;grid-template-columns:repeat(${imgs.length},1fr);gap:4px;">
+      ${imgs.map(url => `<div style="height:220px;overflow:hidden;">
+        <img src="${url}" loading="lazy" style="width:100%;height:100%;object-fit:cover;"/>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${esc(name)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:${BG};color:${TEXT};font-family:'Barlow',sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:inherit;}
+  img{display:block;}
+  @keyframes fu{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  .fu{opacity:0;animation:fu .6s ease forwards;}
+  .d1{animation-delay:.1s}.d2{animation-delay:.22s}.d3{animation-delay:.34s}.d4{animation-delay:.46s}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @media(max-width:680px){
+    .desk-only{display:none!important;}
+    .hero-text{padding:0 20px 36px!important;}
+    .hero-h1{font-size:clamp(40px,12vw,58px)!important;}
+    .section{padding:40px 20px!important;}
+    .s-grid{grid-template-columns:1fr 1fr!important;}
+    .f-grid{grid-template-columns:1fr!important;gap:28px!important;}
+    .stats{grid-template-columns:repeat(2,1fr)!important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- 1. TOP BAR -->
+<div style="background:${ACCENT};padding:10px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+  <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#fff;letter-spacing:.08em;text-transform:uppercase;" class="desk-only">
+    <span style="display:inline-block;width:7px;height:7px;background:#fff;border-radius:50%;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle;"></span>
+    Same-Day Service &nbsp;&middot;&nbsp; Free Estimates &nbsp;&middot;&nbsp; Licensed &amp; Insured
+  </span>
+  <a href="tel:${cp}" style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#fff;letter-spacing:.03em;">
+    &#128222; ${esc(phone)}
+  </a>
+</div>
+
+<!-- 2. HERO — full bleed photo, text at bottom -->
+<section style="position:relative;min-height:92vh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;">
+  ${photos.hero
+    ? `<div style="position:absolute;inset:0;background:url('${photos.hero}') center/cover no-repeat;"></div>`
+    : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#1a1c20,#2a2c30);"></div>`
+  }
+  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(8,8,10,.97) 0%,rgba(8,8,10,.7) 30%,rgba(8,8,10,.2) 65%,transparent 100%);"></div>
+
+  <!-- Nav overlay -->
+  <div style="position:absolute;top:0;left:0;right:0;z-index:10;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:.06em;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.5);">${esc(shortName.toUpperCase())}</div>
+    <nav style="display:flex;gap:24px;align-items:center;" class="desk-only">
+      <a href="#services" style="font-size:13px;color:rgba(255,255,255,.6);font-weight:500;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.6)'">Services</a>
+      <a href="#reviews" style="font-size:13px;color:rgba(255,255,255,.6);font-weight:500;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.6)'">Reviews</a>
+      <a href="#contact" style="font-size:13px;color:rgba(255,255,255,.6);font-weight:500;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.6)'">Location &amp; Hours</a>
+      <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">Call Now</a>
+    </nav>
   </div>
 
-  <!-- REVIEW -->
-  <div style="background:${ACCENT};padding:44px 36px;" class="mob-pad">
-    <div style="max-width:640px;margin:0 auto;text-align:center;">
-      <div style="font-size:40px;color:#ffffff33;line-height:1;margin-bottom:2px;">"</div>
-      <p style="font-size:clamp(15px,2.5vw,20px);font-weight:500;color:#fff;line-height:1.7;font-style:italic;">${esc(review.text)}</p>
-      <p style="margin-top:14px;font-size:12px;color:#ffffff88;letter-spacing:.06em;">— ${esc(review.author)}</p>
+  <!-- Hero text anchored bottom -->
+  <div style="position:relative;z-index:2;padding:0 36px 52px;max-width:800px;" class="hero-text">
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);padding:6px 14px;border-radius:100px;margin-bottom:20px;" class="fu">
+      ${starsHTML(rating, GOLD, 14)}
+      <span style="font-size:13px;font-weight:600;color:#fff;">${rating}</span>
+      <span style="font-size:12px;color:rgba(255,255,255,.5);">&nbsp;&middot;&nbsp;${reviewCount} Google reviews</span>
+    </div>
+    <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(52px,8vw,90px);font-weight:800;line-height:.94;letter-spacing:-.01em;color:#fff;margin-bottom:16px;text-shadow:0 2px 16px rgba(0,0,0,.4);" class="fu d1 hero-h1">
+      ${headline(copy.hero_headline || name, ACCENT)}
+    </h1>
+    <p style="font-size:17px;color:rgba(255,255,255,.62);line-height:1.7;max-width:480px;margin-bottom:28px;" class="fu d2">${esc(copy.hero_sub || '')}</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;" class="fu d3">
+      <a href="tel:${cp}"
+         style="background:${ACCENT};color:#fff;padding:14px 28px;border-radius:5px;
+                font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;
+                letter-spacing:.05em;text-transform:uppercase;
+                box-shadow:0 4px 24px rgba(232,82,26,.45);
+                display:inline-flex;align-items:center;gap:8px;">
+        &#128222; Call Now &mdash; ${esc(phone)}
+      </a>
+      <a href="#services"
+         style="background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:#fff;
+                padding:14px 22px;border-radius:5px;border:1px solid rgba(255,255,255,.18);
+                font-size:15px;font-weight:500;">
+        See Services
+      </a>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:22px;" class="fu d4">
+      ${['&#10003; Licensed','&#10003; Insured','&#10003; Free Estimates','&#10003; Same-Day'].map(b =>
+        `<span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.03em;">${b}</span>`
+      ).join('<span style="color:rgba(255,255,255,.18);margin:0 3px;">&middot;</span>')}
     </div>
   </div>
+</section>
 
-  <!-- GALLERY -->
-  ${galleryStrip(photos.gallery, BORDER)}
+<!-- 3. STATS STRIP -->
+<div style="background:${SURFACE};border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};">
+  <div style="max-width:960px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);" class="stats">
+    ${[
+      [String(rating), 'Star Rating'],
+      [String(reviewCount), 'Google Reviews'],
+      ['Same Day', 'Service'],
+      ['Free', 'Estimates'],
+    ].map(([num, label], i) => `
+    <div style="padding:20px 16px;text-align:center;${i < 3 ? `border-right:1px solid ${BORDER};` : ''}">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${ACCENT};line-height:1;">${esc(num)}</div>
+      <div style="font-size:11px;color:${MUTED};text-transform:uppercase;letter-spacing:.1em;margin-top:3px;">${label}</div>
+    </div>`).join('')}
+  </div>
+</div>
 
-  <!-- FOOTER -->
-  <div style="padding:40px 36px;max-width:900px;margin:0 auto;" class="mob-pad">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;" class="gfooter">
-      <div>
-        <p style="font-family:'Oswald',sans-serif;font-size:10px;color:${ACCENT};letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px;">LOCATION</p>
-        <p style="font-size:13px;color:${MUTED};line-height:1.8;">${esc(address)}</p>
-      </div>
-      <div>
-        <p style="font-family:'Oswald',sans-serif;font-size:10px;color:${ACCENT};letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px;">HOURS</p>
-        ${hours.map(h => `<p style="font-size:12px;color:${MUTED};line-height:1.9;">${esc(h)}</p>`).join('')}
-      </div>
-      <div>
-        <p style="font-family:'Oswald',sans-serif;font-size:10px;color:${ACCENT};letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px;">CALL US</p>
-        <p style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;margin-bottom:12px;">${esc(phone)}</p>
-        <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:10px 18px;border-radius:4px;font-family:'Oswald',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;">CALL NOW</a>
-      </div>
+<!-- 4. SERVICES -->
+<section id="services" style="padding:60px 32px;max-width:960px;margin:0 auto;" class="section">
+  <p style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:${ACCENT};letter-spacing:.22em;text-transform:uppercase;margin-bottom:10px;">${esc(copy.services_label || 'WHAT WE DO')}</p>
+  <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(32px,5vw,50px);font-weight:800;line-height:1;color:${TEXT};margin-bottom:36px;">Everything Your Vehicle Needs</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" class="s-grid">
+    ${services.map((s, i) => `
+    <div style="background:${CARD};border:1px solid ${BORDER};border-radius:8px;padding:22px 20px;transition:border-color .2s,transform .2s;"
+         onmouseover="this.style.borderColor='${ACCENT}';this.style.transform='translateY(-2px)'"
+         onmouseout="this.style.borderColor='${BORDER}';this.style.transform='translateY(0)'">
+      <div style="width:32px;height:3px;background:${ACCENT};border-radius:2px;margin-bottom:12px;"></div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;color:${TEXT};margin-bottom:5px;line-height:1.2;">${esc(s)}</div>
+      <div style="font-size:13px;color:${MUTED};line-height:1.6;">${esc(serviceDescs[i] || '')}</div>
+    </div>`).join('')}
+  </div>
+</section>
+
+<!-- 5. REVIEW -->
+<section id="reviews" style="background:${ACCENT};padding:52px 32px;" class="section">
+  <div style="max-width:700px;margin:0 auto;text-align:center;">
+    <div style="font-size:56px;color:rgba(255,255,255,.18);line-height:1;margin-bottom:2px;font-family:Georgia,serif;">&ldquo;</div>
+    <p style="font-family:'Barlow',sans-serif;font-size:clamp(17px,2.5vw,22px);font-weight:500;color:#fff;line-height:1.7;font-style:italic;margin-bottom:18px;">${esc(review.text)}</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;">
+      ${starsHTML(review.rating, 'rgba(255,255,255,.8)', 14)}
+      <span style="font-size:13px;color:rgba(255,255,255,.7);font-weight:500;">&mdash; ${esc(review.author)}</span>
     </div>
-    <div style="margin-top:32px;padding-top:24px;border-top:1px solid ${BORDER};font-size:10px;color:${BORDER};font-family:'DM Sans',sans-serif;letter-spacing:.05em;text-align:center;">
-      A HelloSite · GetHelloSite.com
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:7px 16px;border-radius:100px;">
+      ${starsHTML(rating, '#fff', 12)}
+      <span style="font-size:12px;color:#fff;font-weight:600;">${rating} &middot; ${reviewCount} Google Reviews</span>
     </div>
   </div>
+</section>
 
-  ${claimCTA(ACCENT)}
-  `);
+<!-- 6. GALLERY -->
+${photos.gallery && photos.gallery.length ? galleryMasonry(photos.gallery) : ''}
+
+<!-- 7. CONTACT -->
+<section id="contact" style="padding:60px 32px;max-width:960px;margin:0 auto;" class="section">
+  <p style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:${ACCENT};letter-spacing:.22em;text-transform:uppercase;margin-bottom:10px;">FIND US</p>
+  <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1;color:${TEXT};margin-bottom:36px;">${esc(copy.cta_heading || 'Get In Touch')}</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;" class="f-grid">
+    <div>
+      <p style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:${MUTED};letter-spacing:.15em;text-transform:uppercase;margin-bottom:14px;">Hours</p>
+      ${hoursRows(allHours)}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <a href="tel:${cp}"
+         style="background:${ACCENT};color:#fff;padding:16px 22px;border-radius:6px;
+                display:flex;align-items:center;gap:14px;
+                box-shadow:0 4px 20px rgba(232,82,26,.3);transition:transform .2s;"
+         onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        <span style="font-size:22px;">&#128222;</span>
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;opacity:.75;margin-bottom:2px;">Call or Text</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:.02em;">${esc(phone)}</div>
+        </div>
+      </a>
+      <a href="${mapsUrl}" target="_blank"
+         style="background:${CARD};border:1px solid ${BORDER};color:${TEXT};padding:16px 22px;border-radius:6px;
+                display:flex;align-items:flex-start;gap:14px;transition:border-color .2s;"
+         onmouseover="this.style.borderColor='${ACCENT}'" onmouseout="this.style.borderColor='${BORDER}'">
+        <span style="font-size:20px;margin-top:2px;">&#128205;</span>
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:${MUTED};margin-bottom:4px;">Location</div>
+          <div style="font-size:15px;line-height:1.5;">${esc(address)}</div>
+          <div style="font-size:12px;color:${ACCENT};margin-top:6px;font-weight:600;">Get Directions &rarr;</div>
+        </div>
+      </a>
+      ${copy.cta_sub ? `<p style="font-size:14px;color:${MUTED};line-height:1.7;">${esc(copy.cta_sub)}</p>` : ''}
+    </div>
+  </div>
+</section>
+
+<!-- 8. FOOTER -->
+<footer style="background:#0A0A0C;border-top:1px solid ${BORDER};padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+  <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.25);">${esc(shortName.toUpperCase())}</div>
+  <div style="display:flex;align-items:center;gap:20px;">
+    <a href="${mapsUrl}" target="_blank" style="font-size:12px;color:rgba(255,255,255,.25);" onmouseover="this.style.color='${ACCENT}'" onmouseout="this.style.color='rgba(255,255,255,.25)'">Google Maps</a>
+    <a href="tel:${cp}" style="font-size:12px;color:rgba(255,255,255,.25);" onmouseover="this.style.color='${ACCENT}'" onmouseout="this.style.color='rgba(255,255,255,.25)'">${esc(phone)}</a>
+  </div>
+  <div style="font-size:10px;color:rgba(255,255,255,.1);letter-spacing:.06em;">A HelloSite &middot; GetHelloSite.com</div>
+</footer>
+
+<!-- 9. CLAIM CTA -->
+<a href="https://gethellosite.com/#demo"
+   style="position:fixed;bottom:20px;right:20px;z-index:9999;
+          background:${ACCENT};color:#fff;
+          padding:12px 22px;border-radius:6px;
+          font-family:'Barlow Condensed',sans-serif;
+          font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+          box-shadow:0 8px 32px rgba(232,82,26,.5);
+          display:flex;align-items:center;gap:6px;white-space:nowrap;">
+  &#10022; Claim This Site
+</a>
+
+</body>
+</html>`;
 }
 
 
@@ -235,10 +388,7 @@ function templateGrooming(place, copy, photos) {
     'family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Outfit:wght@300;400;500;600',
     `body{background:${BG};color:${TEXT};font-family:'Outfit',sans-serif;}`,
     `
-  <!-- GOLD HAIRLINE -->
   <div style="height:3px;background:linear-gradient(90deg,transparent,${ACCENT},transparent);"></div>
-
-  <!-- NAV -->
   <div style="padding:20px 36px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;">
     <div style="font-family:'Cormorant Garamond',serif;font-size:11px;color:${MUTED};letter-spacing:.2em;" class="mob-hide">Est. in Business</div>
     <div style="text-align:center;">
@@ -250,11 +400,9 @@ function templateGrooming(place, copy, photos) {
       <a href="tel:${cleanPhone(phone)}" style="color:${MUTED};">${esc(phone)}</a>
     </div>
   </div>
-
-  <!-- HERO -->
   <div style="padding:44px 36px 52px;max-width:660px;margin:0 auto;text-align:center;" class="mob-pad">
     <span style="color:${ACCENT};font-size:17px;letter-spacing:2px;" class="fu">${stars(rating)}</span>
-    <p style="font-size:10px;color:${MUTED};letter-spacing:.2em;text-transform:uppercase;margin-top:8px;margin-bottom:32px;" class="fu">${rating} Stars · ${reviewCount} Reviews</p>
+    <p style="font-size:10px;color:${MUTED};letter-spacing:.2em;text-transform:uppercase;margin-top:8px;margin-bottom:32px;" class="fu">${rating} Stars &middot; ${reviewCount} Reviews</p>
     <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(48px,8vw,84px);font-weight:700;line-height:1.0;margin-bottom:22px;" class="fu d1">
       ${headline(copy.hero_headline, ACCENT)}
     </h1>
@@ -264,13 +412,7 @@ function templateGrooming(place, copy, photos) {
       <a href="#services" style="background:transparent;border:1px solid ${BORDER};color:${MUTED};padding:12px 20px;font-size:11px;letter-spacing:.1em;">SERVICES</a>
     </div>
   </div>
-
-  <!-- HERO PHOTO -->
-  ${photos.hero ? `
-  <div style="height:360px;background:url('${photos.hero}') center/cover no-repeat;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};"></div>
-  ` : ''}
-
-  <!-- SERVICES — MENU STYLE -->
+  ${photos.hero ? `<div style="height:360px;background:url('${photos.hero}') center/cover no-repeat;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};"></div>` : ''}
   <div style="background:${SURFACE};padding:48px 36px;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
     <div style="max-width:540px;margin:0 auto;">
       <h2 style="font-family:'Cormorant Garamond',serif;font-size:11px;font-weight:600;color:${MUTED};letter-spacing:.3em;text-transform:uppercase;text-align:center;margin-bottom:32px;">${esc(copy.services_label || 'THE MENU')}</h2>
@@ -281,28 +423,21 @@ function templateGrooming(place, copy, photos) {
       </div>`).join('')}
     </div>
   </div>
-
-  <!-- REVIEW -->
   <div style="padding:60px 36px;max-width:580px;margin:0 auto;text-align:center;" class="mob-pad">
     <div style="width:36px;height:1px;background:${ACCENT};margin:0 auto 28px;"></div>
-    <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3vw,24px);font-style:italic;line-height:1.7;margin-bottom:18px;">"${esc(review.text)}"</p>
-    <p style="font-size:10px;color:${MUTED};letter-spacing:.2em;text-transform:uppercase;">— ${esc(review.author)}</p>
+    <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3vw,24px);font-style:italic;line-height:1.7;margin-bottom:18px;">&ldquo;${esc(review.text)}&rdquo;</p>
+    <p style="font-size:10px;color:${MUTED};letter-spacing:.2em;text-transform:uppercase;">&mdash; ${esc(review.author)}</p>
     <div style="width:36px;height:1px;background:${ACCENT};margin:28px auto 0;"></div>
   </div>
-
-  <!-- GALLERY -->
   ${galleryStrip(photos.gallery, BORDER)}
-
-  <!-- FOOTER -->
   <div style="border-top:1px solid ${BORDER};padding:28px 36px;text-align:center;" class="mob-pad">
     <p style="font-size:13px;color:${MUTED};margin-bottom:10px;">${esc(address)}</p>
     <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:20px;">
       ${hours.map(h => `<span style="font-size:11px;color:${MUTED};letter-spacing:.04em;">${esc(h)}</span>`).join('')}
     </div>
     <a href="tel:${cleanPhone(phone)}" style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:${ACCENT};">${esc(phone)}</a>
-    <div style="margin-top:20px;font-size:10px;color:${BORDER};font-family:'Outfit',sans-serif;letter-spacing:.05em;">A HelloSite · GetHelloSite.com</div>
+    <div style="margin-top:20px;font-size:10px;color:${BORDER};font-family:'Outfit',sans-serif;letter-spacing:.05em;">A HelloSite &middot; GetHelloSite.com</div>
   </div>
-
   ${claimCTA(ACCENT, BG)}
   `);
 }
@@ -324,7 +459,6 @@ function templateWellness(place, copy, photos) {
     'family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Nunito:wght@400;600;700',
     `body{background:${BG};color:${TEXT};font-family:'Nunito',sans-serif;}`,
     `
-  <!-- NAV -->
   <div style="padding:20px 36px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${BORDER};">
     <div>
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;letter-spacing:.04em;">${esc(name)}</div>
@@ -335,8 +469,6 @@ function templateWellness(place, copy, photos) {
       <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:700;">Book Now</a>
     </div>
   </div>
-
-  <!-- HERO PHOTO or GRADIENT -->
   <div style="position:relative;min-height:520px;display:flex;align-items:flex-end;overflow:hidden;">
     ${photos.hero
       ? `<div style="position:absolute;inset:0;background:url('${photos.hero}') center/cover no-repeat;"></div>
@@ -347,7 +479,7 @@ function templateWellness(place, copy, photos) {
     <div style="position:relative;z-index:2;padding:0 36px 48px;max-width:720px;" class="mob-pad">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;" class="fu">
         <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
-        <span style="color:rgba(255,255,255,.65);font-size:13px;">${rating} · ${reviewCount} reviews</span>
+        <span style="color:rgba(255,255,255,.65);font-size:13px;">${rating} &middot; ${reviewCount} reviews</span>
       </div>
       <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(42px,6.5vw,70px);font-weight:700;line-height:1.08;color:#fff;margin-bottom:18px;" class="fu d1">
         ${headline(copy.hero_headline, '#e8c99a')}
@@ -359,8 +491,6 @@ function templateWellness(place, copy, photos) {
       </div>
     </div>
   </div>
-
-  <!-- SERVICES -->
   <div style="background:${SURFACE};padding:52px 36px;border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
     <div style="max-width:860px;margin:0 auto;">
       <h2 style="font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:700;color:${TEXT};margin-bottom:8px;">${esc(copy.services_label || 'Our Services')}</h2>
@@ -375,19 +505,13 @@ function templateWellness(place, copy, photos) {
       </div>
     </div>
   </div>
-
-  <!-- REVIEW -->
   <div style="padding:60px 36px;max-width:640px;margin:0 auto;" class="mob-pad">
     <div style="border-left:3px solid ${ACCENT};padding-left:28px;">
-      <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3vw,24px);font-style:italic;line-height:1.75;margin-bottom:14px;">"${esc(review.text)}"</p>
-      <p style="font-size:12px;color:${MUTED};letter-spacing:.06em;">— ${esc(review.author)}</p>
+      <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3vw,24px);font-style:italic;line-height:1.75;margin-bottom:14px;">&ldquo;${esc(review.text)}&rdquo;</p>
+      <p style="font-size:12px;color:${MUTED};letter-spacing:.06em;">&mdash; ${esc(review.author)}</p>
     </div>
   </div>
-
-  <!-- GALLERY -->
   ${galleryStrip(photos.gallery, BORDER)}
-
-  <!-- FOOTER -->
   <div style="background:${SURFACE};padding:36px;border-top:1px solid ${BORDER};" class="mob-pad">
     <div style="max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;" class="gfooter">
       <div>
@@ -401,11 +525,10 @@ function templateWellness(place, copy, photos) {
       <div>
         <p style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:700;margin-bottom:9px;">Call or Text</p>
         <a href="tel:${cleanPhone(phone)}" style="font-size:19px;font-weight:700;color:${TEXT};">${esc(phone)}</a>
-        <div style="margin-top:20px;font-size:10px;color:${BORDER};letter-spacing:.05em;">A HelloSite · GetHelloSite.com</div>
+        <div style="margin-top:20px;font-size:10px;color:${BORDER};letter-spacing:.05em;">A HelloSite &middot; GetHelloSite.com</div>
       </div>
     </div>
   </div>
-
   ${claimCTA(ACCENT)}
   `);
 }
@@ -427,12 +550,9 @@ function templatePet(place, copy, photos) {
     'family=Nunito:wght@400;600;700;800',
     `body{background:${BG};color:${TEXT};font-family:'Nunito',sans-serif;}`,
     `
-  <!-- ANNOUNCEMENT BAR -->
   <div style="background:${ACCENT};padding:9px 24px;text-align:center;">
-    <span style="font-size:13px;font-weight:700;color:#fff;letter-spacing:.04em;">🐾 Now Accepting New Clients · <a href="tel:${cleanPhone(phone)}" style="color:#fff;">${esc(phone)}</a></span>
+    <span style="font-size:13px;font-weight:700;color:#fff;letter-spacing:.04em;">&#128062; Now Accepting New Clients &middot; <a href="tel:${cleanPhone(phone)}" style="color:#fff;">${esc(phone)}</a></span>
   </div>
-
-  <!-- NAV -->
   <div style="padding:16px 32px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid ${BORDER};">
     <div>
       <div style="font-size:21px;font-weight:800;">${esc(name)}</div>
@@ -440,26 +560,18 @@ function templatePet(place, copy, photos) {
     </div>
     <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">Book a Groom</a>
   </div>
-
-  <!-- HERO -->
   <div style="padding:52px 32px 42px;max-width:860px;margin:0 auto;" class="mob-pad">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;" class="fu">
       <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
-      <span style="font-size:13px;color:${MUTED};font-weight:600;">${rating} stars · ${reviewCount} happy pet parents</span>
+      <span style="font-size:13px;color:${MUTED};font-weight:600;">${rating} stars &middot; ${reviewCount} happy pet parents</span>
     </div>
     <h1 style="font-size:clamp(38px,6vw,64px);font-weight:800;line-height:1.08;margin-bottom:16px;" class="fu d1">
       ${headline(copy.hero_headline, ACCENT)}
     </h1>
     <p style="font-size:16px;color:${MUTED};max-width:460px;line-height:1.75;margin-bottom:32px;" class="fu d2">${esc(copy.hero_sub || '')}</p>
-    <a href="tel:${cleanPhone(phone)}" style="display:inline-block;background:${TEXT};color:${BG};padding:14px 30px;border-radius:30px;font-size:14px;font-weight:800;" class="fu d3">Schedule Your Pet's Visit →</a>
+    <a href="tel:${cleanPhone(phone)}" style="display:inline-block;background:${TEXT};color:${BG};padding:14px 30px;border-radius:30px;font-size:14px;font-weight:800;" class="fu d3">Schedule Your Pet&rsquo;s Visit &rarr;</a>
   </div>
-
-  <!-- HERO PHOTO -->
-  ${photos.hero ? `
-  <div style="height:300px;background:url('${photos.hero}') center/cover no-repeat;border-top:2px solid ${BORDER};border-bottom:2px solid ${BORDER};"></div>
-  ` : ''}
-
-  <!-- SERVICES -->
+  ${photos.hero ? `<div style="height:300px;background:url('${photos.hero}') center/cover no-repeat;border-top:2px solid ${BORDER};border-bottom:2px solid ${BORDER};"></div>` : ''}
   <div style="background:${SURFACE};padding:44px 32px;border-top:2px solid ${BORDER};border-bottom:2px solid ${BORDER};" class="mob-pad" id="services">
     <div style="max-width:860px;margin:0 auto;">
       <h2 style="font-size:26px;font-weight:800;margin-bottom:8px;">${esc(copy.services_label || 'Our Services')}</h2>
@@ -473,18 +585,12 @@ function templatePet(place, copy, photos) {
       </div>
     </div>
   </div>
-
-  <!-- REVIEW -->
   <div style="padding:52px 32px;max-width:620px;margin:0 auto;text-align:center;" class="mob-pad">
-    <div style="font-size:40px;color:${ACCENT};line-height:1;margin-bottom:10px;">🐾</div>
-    <p style="font-size:clamp(15px,2.5vw,19px);line-height:1.75;margin-bottom:14px;font-style:italic;">"${esc(review.text)}"</p>
-    <p style="font-size:12px;color:${MUTED};font-weight:600;">— ${esc(review.author)}</p>
+    <div style="font-size:40px;color:${ACCENT};line-height:1;margin-bottom:10px;">&#128062;</div>
+    <p style="font-size:clamp(15px,2.5vw,19px);line-height:1.75;margin-bottom:14px;font-style:italic;">&ldquo;${esc(review.text)}&rdquo;</p>
+    <p style="font-size:12px;color:${MUTED};font-weight:600;">&mdash; ${esc(review.author)}</p>
   </div>
-
-  <!-- GALLERY -->
   ${galleryStrip(photos.gallery, BORDER)}
-
-  <!-- FOOTER -->
   <div style="background:${SURFACE};padding:36px 32px;border-top:2px solid ${BORDER};" class="mob-pad">
     <div style="max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;" class="gfooter">
       <div>
@@ -498,11 +604,10 @@ function templatePet(place, copy, photos) {
       <div>
         <p style="font-size:11px;font-weight:800;color:${ACCENT};letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px;">Call Us</p>
         <a href="tel:${cleanPhone(phone)}" style="font-size:19px;font-weight:800;color:${TEXT};">${esc(phone)}</a>
-        <div style="margin-top:20px;font-size:10px;color:${BORDER};letter-spacing:.05em;">A HelloSite · GetHelloSite.com</div>
+        <div style="margin-top:20px;font-size:10px;color:${BORDER};letter-spacing:.05em;">A HelloSite &middot; GetHelloSite.com</div>
       </div>
     </div>
   </div>
-
   ${claimCTA(ACCENT)}
   `);
 }
@@ -526,14 +631,11 @@ function templateRetail(place, copy, photos) {
     'family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Jost:wght@400;500;600',
     `body{background:${BG};color:${TEXT};font-family:'Jost',sans-serif;}`,
     `
-  <!-- ANNOUNCEMENT BAR -->
   <div style="background:${ACCENT};padding:9px 24px;text-align:center;">
     <span style="font-size:12px;font-weight:500;color:#fff;letter-spacing:.12em;text-transform:uppercase;">
-      Free local delivery on orders $75+ · <a href="tel:${cleanPhone(phone)}" style="color:#fff;">${esc(phone)}</a>
+      Free local delivery on orders $75+ &middot; <a href="tel:${cleanPhone(phone)}" style="color:#fff;">${esc(phone)}</a>
     </span>
   </div>
-
-  <!-- NAV -->
   <div style="padding:20px 36px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${BORDER};">
     <div>
       <div style="font-family:'Playfair Display',serif;font-size:23px;font-weight:800;letter-spacing:.02em;">${esc(name)}</div>
@@ -544,12 +646,10 @@ function templateRetail(place, copy, photos) {
       <a href="#contact" style="font-size:13px;color:${MUTED};">Visit Us</a>
     </div>
   </div>
-
-  <!-- HERO -->
   <div style="padding:58px 36px 46px;max-width:860px;margin:0 auto;" class="mob-pad">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;" class="fu">
       <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
-      <span style="font-size:13px;color:${MUTED};">${rating} · ${reviewCount} reviews</span>
+      <span style="font-size:13px;color:${MUTED};">${rating} &middot; ${reviewCount} reviews</span>
     </div>
     <h1 style="font-family:'Playfair Display',serif;font-size:clamp(42px,6.5vw,72px);font-weight:800;line-height:1.08;margin-bottom:20px;" class="fu d1">
       ${headline(copy.hero_headline, ACCENT)}
@@ -560,13 +660,7 @@ function templateRetail(place, copy, photos) {
       <a href="#contact" style="background:transparent;border:1px solid ${BORDER};color:${MUTED};padding:13px 20px;border-radius:4px;font-size:13px;">Get Directions</a>
     </div>
   </div>
-
-  <!-- HERO PHOTO -->
-  ${photos.hero ? `
-  <div style="height:320px;background:url('${photos.hero}') center/cover no-repeat;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};"></div>
-  ` : ''}
-
-  <!-- CATEGORY GRID -->
+  ${photos.hero ? `<div style="height:320px;background:url('${photos.hero}') center/cover no-repeat;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};"></div>` : ''}
   <div style="background:${SURFACE};padding:48px 36px;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
     <div style="max-width:860px;margin:0 auto;">
       <h2 style="font-family:'Playfair Display',serif;font-size:26px;font-weight:800;margin-bottom:28px;">${esc(copy.services_label || 'Shop by Category')}</h2>
@@ -580,19 +674,13 @@ function templateRetail(place, copy, photos) {
       ${copy.services_sub ? `<p style="font-family:'Playfair Display',serif;font-style:italic;font-size:16px;color:${MUTED};margin-top:28px;text-align:center;">${esc(copy.services_sub)}</p>` : ''}
     </div>
   </div>
-
-  <!-- REVIEW -->
   <div style="padding:56px 36px;max-width:640px;margin:0 auto;text-align:center;" class="mob-pad">
     <div style="width:48px;height:2px;background:${ACCENT};margin:0 auto 24px;"></div>
-    <p style="font-family:'Playfair Display',serif;font-size:clamp(17px,3vw,22px);font-style:italic;line-height:1.75;margin-bottom:14px;">"${esc(review.text)}"</p>
-    <p style="font-size:12px;color:${MUTED};">— ${esc(review.author)}</p>
+    <p style="font-family:'Playfair Display',serif;font-size:clamp(17px,3vw,22px);font-style:italic;line-height:1.75;margin-bottom:14px;">&ldquo;${esc(review.text)}&rdquo;</p>
+    <p style="font-size:12px;color:${MUTED};">&mdash; ${esc(review.author)}</p>
     <div style="width:48px;height:2px;background:${ACCENT};margin:24px auto 0;"></div>
   </div>
-
-  <!-- GALLERY -->
   ${galleryStrip(photos.gallery, BORDER)}
-
-  <!-- FOOTER -->
   <div style="background:${SURFACE};padding:36px;border-top:1px solid ${BORDER};" class="mob-pad" id="contact">
     <div style="max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;" class="gfooter">
       <div>
@@ -606,11 +694,10 @@ function templateRetail(place, copy, photos) {
       <div>
         <p style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;margin-bottom:9px;">Contact</p>
         <a href="tel:${cleanPhone(phone)}" style="font-size:17px;font-weight:600;color:${TEXT};">${esc(phone)}</a>
-        <div style="margin-top:20px;font-size:10px;color:${BORDER};letter-spacing:.05em;">A HelloSite · GetHelloSite.com</div>
+        <div style="margin-top:20px;font-size:10px;color:${BORDER};letter-spacing:.05em;">A HelloSite &middot; GetHelloSite.com</div>
       </div>
     </div>
   </div>
-
   ${claimCTA(ACCENT)}
   `);
 }
@@ -639,7 +726,6 @@ function templateRealEstate(place, copy, photos) {
     'family=Libre+Baskerville:ital,wght@0,700;1,400&family=Raleway:wght@400;500;600;700',
     `body{background:${BG};color:${TEXT};font-family:'Raleway',sans-serif;}`,
     `
-  <!-- NAV -->
   <div style="padding:20px 36px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${BORDER};">
     <div>
       <div style="font-family:'Libre Baskerville',serif;font-size:21px;font-weight:700;">${esc(name)}</div>
@@ -647,12 +733,10 @@ function templateRealEstate(place, copy, photos) {
     </div>
     <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:${BG};padding:10px 20px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-family:'Raleway',sans-serif;">Schedule a Call</a>
   </div>
-
-  <!-- HERO -->
   <div style="padding:62px 36px 50px;max-width:960px;margin:0 auto;" class="mob-pad">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;" class="fu">
       <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
-      <span style="font-size:13px;color:${MUTED};">${rating} · ${reviewCount} client reviews</span>
+      <span style="font-size:13px;color:${MUTED};">${rating} &middot; ${reviewCount} client reviews</span>
     </div>
     <h1 style="font-family:'Libre Baskerville',serif;font-size:clamp(40px,6.5vw,72px);font-weight:700;line-height:1.08;margin-bottom:20px;" class="fu d1">
       ${headline(copy.hero_headline, ACCENT)}
@@ -664,13 +748,7 @@ function templateRealEstate(place, copy, photos) {
       <a href="tel:${cleanPhone(phone)}" style="background:transparent;border:1px solid ${BORDER};color:${MUTED};padding:13px 22px;border-radius:4px;font-size:13px;" class="mob-hide">${esc(phone)}</a>
     </div>
   </div>
-
-  <!-- HERO PHOTO -->
-  ${photos.hero ? `
-  <div style="height:340px;background:url('${photos.hero}') center/cover no-repeat;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};"></div>
-  ` : ''}
-
-  <!-- STATS STRIP -->
+  ${photos.hero ? `<div style="height:340px;background:url('${photos.hero}') center/cover no-repeat;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};"></div>` : ''}
   <div style="background:${ACCENT};padding:28px 36px;">
     <div style="max-width:960px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;" class="g3">
       ${RE_STATS.map(({ num, label }) => `
@@ -680,12 +758,10 @@ function templateRealEstate(place, copy, photos) {
       </div>`).join('')}
     </div>
   </div>
-
-  <!-- SERVICES -->
   <div style="background:${SURFACE};padding:52px 36px;border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
     <div style="max-width:960px;margin:0 auto;">
       <h2 style="font-family:'Libre Baskerville',serif;font-size:26px;font-weight:700;margin-bottom:8px;">${esc(copy.services_label || 'How I Can Help')}</h2>
-      <p style="font-size:14px;color:${MUTED};margin-bottom:30px;line-height:1.7;">${esc(copy.hero_sub || 'From your first showing to closing day — and beyond.')}</p>
+      <p style="font-size:14px;color:${MUTED};margin-bottom:30px;line-height:1.7;">${esc(copy.hero_sub || 'From your first showing to closing day.')}</p>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;" class="g3">
         ${services.map((s, i) => `
         <div style="background:${BG};border:1px solid ${BORDER};padding:22px;border-radius:6px;">
@@ -696,19 +772,13 @@ function templateRealEstate(place, copy, photos) {
       </div>
     </div>
   </div>
-
-  <!-- REVIEW -->
   <div style="padding:56px 36px;max-width:640px;margin:0 auto;" class="mob-pad">
     <div style="border-left:3px solid ${ACCENT};padding-left:28px;">
-      <p style="font-family:'Libre Baskerville',serif;font-size:clamp(17px,2.8vw,21px);font-style:italic;line-height:1.75;margin-bottom:14px;">"${esc(review.text)}"</p>
-      <p style="font-size:11px;color:${MUTED};letter-spacing:.08em;text-transform:uppercase;">— ${esc(review.author)}</p>
+      <p style="font-family:'Libre Baskerville',serif;font-size:clamp(17px,2.8vw,21px);font-style:italic;line-height:1.75;margin-bottom:14px;">&ldquo;${esc(review.text)}&rdquo;</p>
+      <p style="font-size:11px;color:${MUTED};letter-spacing:.08em;text-transform:uppercase;">&mdash; ${esc(review.author)}</p>
     </div>
   </div>
-
-  <!-- GALLERY -->
   ${galleryStrip(photos.gallery, BORDER)}
-
-  <!-- FOOTER -->
   <div style="background:${SURFACE};padding:36px;border-top:1px solid ${BORDER};" class="mob-pad" id="contact">
     <div style="max-width:960px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;" class="gfooter">
       <div>
@@ -722,11 +792,10 @@ function templateRealEstate(place, copy, photos) {
       <div>
         <p style="font-family:'Libre Baskerville',serif;font-size:11px;font-weight:700;color:${ACCENT};letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Direct Line</p>
         <a href="tel:${cleanPhone(phone)}" style="font-family:'Libre Baskerville',serif;font-size:20px;font-weight:700;color:${TEXT};">${esc(phone)}</a>
-        <div style="margin-top:20px;font-size:10px;color:${BORDER};letter-spacing:.05em;">A HelloSite · GetHelloSite.com</div>
+        <div style="margin-top:20px;font-size:10px;color:${BORDER};letter-spacing:.05em;">A HelloSite &middot; GetHelloSite.com</div>
       </div>
     </div>
   </div>
-
   ${claimCTA(ACCENT, BG)}
   `);
 }
