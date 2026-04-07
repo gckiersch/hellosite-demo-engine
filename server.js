@@ -308,24 +308,10 @@ function galleryHTML(images, name, theme) {
   if (!images?.length) return '';
   const isDark = theme === 'dark';
   const bg = isDark ? '#0a0a0a' : '#fafaf8';
-  const imgs = images.slice(0,4);
-
-  if (imgs.length >= 4) {
-    return `<div style="padding:0 4rem 5rem;background:${bg};" class="mob-pad">
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:auto;gap:6px;">
-        <div style="grid-row:1/3;aspect-ratio:3/4;overflow:hidden;border-radius:4px;">
-          <img src="${imgs[0]}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/>
-        </div>
-        ${imgs.slice(1).map(url=>`
-        <div style="aspect-ratio:3/2;overflow:hidden;border-radius:4px;">
-          <img src="${url}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  }
-  return `<div style="padding:0 4rem 5rem;background:${bg};" class="mob-pad">
-    <div style="display:grid;grid-template-columns:repeat(${imgs.length},1fr);gap:6px;">
-      ${imgs.map(url=>`<div style="aspect-ratio:4/3;overflow:hidden;border-radius:4px;"><img src="${url}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}
+  const imgs = images.slice(0,3);
+  return `<div style="background:${bg};">
+    <div style="display:grid;grid-template-columns:repeat(${imgs.length},1fr);gap:4px;">
+      ${imgs.map(url=>`<div style="aspect-ratio:4/3;overflow:hidden;"><img src="${url}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}
     </div>
   </div>`;
 }
