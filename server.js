@@ -497,14 +497,16 @@ function layoutSplit(place, copy, photos, industry) {
                    industry === 'pet' ? `Book a Groom — ${phone}` :
                    `Book — ${phone}`;
 
+  const city = address.split(',')[1]?.trim().split(' ')[0] || 'Local';
+
   const navLinks = industry === 'retail'
     ? ['Shop','Gallery','Reviews','Call Us']
     : ['Services','Gallery','Reviews', industry === 'pet' ? 'Book' : 'Book'];
 
   return baseHTML(name, theme, `
     ${navHTML(shortName, copy, theme, navLinks)}
-    <section style="min-height:100vh;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;" class="mob-stack">
-      <div style="display:flex;flex-direction:column;justify-content:center;padding:9rem 4rem 5rem 5rem;background:${panelBg};position:relative;z-index:2;" class="mob-pad">
+    <section style="height:100vh;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;" class="mob-stack">
+      <div style="display:flex;flex-direction:column;justify-content:center;padding:9rem 4rem 5rem 5rem;background:${panelBg};position:relative;z-index:2;overflow-y:auto;" class="mob-pad">
         <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:${a};margin-bottom:1.25rem;" class="fu">${copy.tagline}</p>
         <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(3.5rem,6vw,6.5rem);line-height:.88;letter-spacing:.02em;margin-bottom:1.5rem;color:${textColor};" class="fu d1">${formatHeadline(copy.hero_headline, a)}</h1>
         <p style="font-size:1rem;color:${mutedColor};line-height:1.8;max-width:400px;margin-bottom:2.5rem;" class="fu d2">${copy.hero_sub}</p>
@@ -514,10 +516,10 @@ function layoutSplit(place, copy, photos, industry) {
         <div style="display:grid;grid-template-columns:repeat(3,auto);gap:2.5rem;margin-top:3.5rem;padding-top:2.5rem;border-top:1px solid ${isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)'};" class="fu d4">
           <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.25rem;color:${a};line-height:1;">${rating}★</div><div style="font-size:.6rem;color:${mutedColor};letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Rating</div></div>
           <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.25rem;color:${a};line-height:1;">${reviewCount}</div><div style="font-size:.6rem;color:${mutedColor};letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Reviews</div></div>
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.25rem;color:${a};line-height:1;">LA</div><div style="font-size:.6rem;color:${mutedColor};letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Local</div></div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.25rem;color:${a};line-height:1;">${city}</div><div style="font-size:.6rem;color:${mutedColor};letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Local</div></div>
         </div>
       </div>
-      <div style="position:relative;overflow:hidden;min-height:500px;" class="mob-hide">
+      <div style="position:relative;overflow:hidden;" class="mob-hide">
         ${photos.hero
           ? `<img src="${photos.hero}" alt="${name}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;"/><div style="position:absolute;inset:0;background:linear-gradient(to right,${isDark?'rgba(8,8,15,.65)':'rgba(250,250,248,.3)'} 0%,transparent 30%);"></div>`
           : `<div style="position:absolute;inset:0;background:${isDark?'#111':'#eee'};"></div>`
