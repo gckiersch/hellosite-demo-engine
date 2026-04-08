@@ -240,6 +240,8 @@ function baseHTML(name, theme, body) {
   .d1{animation-delay:.15s}.d2{animation-delay:.3s}.d3{animation-delay:.45s}.d4{animation-delay:.6s}
   @media(max-width:768px){
     .mob-hide{display:none!important;}
+    .mob-only{display:block!important;}
+    .mob-only{display:none!important;}
     .mob-show{display:inline-flex!important;}
     .mob-stack{grid-template-columns:1fr!important;min-height:auto!important;}
     .mob-pad{padding:3.5rem 1.5rem!important;}
@@ -264,11 +266,13 @@ function navHTML(shortName, copy, theme, links) {
   const cp = phone.replace(/\D/g,'');
   return `<nav style="position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.5rem;background:${bg};backdrop-filter:blur(16px);border-bottom:1px solid ${border};">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.06em;color:${text};">${shortName}</div>
-    <ul style="display:flex;gap:2rem;list-style:none;align-items:center;" class="mob-hide">
-      ${links.slice(0,-1).map(l => `<li><a href="#${l.toLowerCase().replace(/\s/g,'')}" style="color:${muted};text-decoration:none;font-size:.73rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;">${l}</a></li>`).join('')}
-    </ul>
-    <a href="#contact" style="background:${h};color:${btnColor};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;" class="mob-hide">${links[links.length-1]}</a>
-    ${cp ? `<a href="tel:${cp}" style="display:none;background:${h};color:${btnColor};padding:.45rem 1rem;border-radius:3px;text-decoration:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;" class="mob-show">📞 Call</a>` : ''}
+    <div style="display:flex;align-items:center;gap:2rem;">
+      <ul style="display:flex;gap:2rem;list-style:none;align-items:center;margin:0;padding:0;" class="mob-hide">
+        ${links.slice(0,-1).map(l => `<li><a href="#${l.toLowerCase().replace(/\s/g,'')}" style="color:${muted};text-decoration:none;font-size:.73rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;">${l}</a></li>`).join('')}
+      </ul>
+      <a href="#contact" style="background:${h};color:${btnColor};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;" class="mob-hide">${links[links.length-1]}</a>
+      ${cp ? `<a href="tel:${cp}" style="background:${h};color:${btnColor};padding:.45rem 1rem;border-radius:3px;text-decoration:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;" class="mob-only">📞 Call</a>` : ''}
+    </div>
   </nav>`;
 }
 
