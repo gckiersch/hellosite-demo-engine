@@ -238,10 +238,10 @@ function baseHTML(name, theme, body) {
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   .fu{opacity:0;animation:fadeUp .7s ease forwards;}
   .d1{animation-delay:.15s}.d2{animation-delay:.3s}.d3{animation-delay:.45s}.d4{animation-delay:.6s}
+  .mob-only{display:none!important;}
   @media(max-width:768px){
     .mob-hide{display:none!important;}
-    .mob-only{display:block!important;}
-    .mob-only{display:none!important;}
+    .mob-only{display:inline-block!important;}
     .mob-show{display:inline-flex!important;}
     .mob-stack{grid-template-columns:1fr!important;min-height:auto!important;}
     .mob-pad{padding:3.5rem 1.5rem!important;}
