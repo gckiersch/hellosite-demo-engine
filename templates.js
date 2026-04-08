@@ -445,7 +445,7 @@ function templateRetail(place, copy, photos) {
     `
   <div style="background:${ACCENT};padding:9px 24px;text-align:center;">
     <span style="font-size:12px;font-weight:500;color:#fff;letter-spacing:.12em;text-transform:uppercase;">
-      Free local delivery on orders $75+ · <a href="tel:${cleanPhone(phone)}" style="color:#fff;">${esc(phone)}</a>
+      Now open in your neighborhood · <a href="tel:${cleanPhone(phone)}" style="color:#fff;">${esc(phone)}</a>
     </span>
   </div>
 
@@ -470,8 +470,8 @@ function templateRetail(place, copy, photos) {
     </h1>
     <p style="font-size:16px;color:${MUTED};max-width:460px;line-height:1.8;margin-bottom:36px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
     <div style="display:flex;gap:12px;" class="fu d3">
-      <a href="#services" style="background:${ACCENT};color:#fff;padding:13px 26px;border-radius:4px;font-size:13px;font-weight:600;letter-spacing:.04em;">Shop Our Collections</a>
-      <a href="#contact" style="background:transparent;border:1px solid ${BORDER};color:${MUTED};padding:13px 20px;border-radius:4px;font-size:13px;">Get Directions</a>
+      <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:13px 26px;border-radius:4px;font-size:13px;font-weight:600;letter-spacing:.04em;">Call Us — ${esc(phone)}</a>
+      <a href="https://maps.google.com/?q=${encodeURIComponent(address)}" target="_blank" style="background:transparent;border:1px solid ${BORDER};color:${MUTED};padding:13px 20px;border-radius:4px;font-size:13px;">Get Directions</a>
     </div>
   </div>
 
@@ -479,7 +479,7 @@ function templateRetail(place, copy, photos) {
 
   <div style="background:${SURFACE};padding:48px 36px;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
     <div style="max-width:860px;margin:0 auto;">
-      <h2 style="font-family:'Playfair Display',serif;font-size:26px;font-weight:800;margin-bottom:28px;">${esc(copy.services_label||'Shop by Category')}</h2>
+      <h2 style="font-family:'Playfair Display',serif;font-size:26px;font-weight:800;margin-bottom:28px;">${esc(copy.services_label||'What We Carry')}</h2>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" class="g3">
         ${services.map((s,i)=>`
         <div style="background:${RETAIL_SWATCHES[i%RETAIL_SWATCHES.length]};border-radius:10px;padding:26px 20px;border:1px solid ${BORDER};">
