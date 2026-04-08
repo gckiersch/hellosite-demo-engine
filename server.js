@@ -583,6 +583,9 @@ function renderDemo(place, copy, photos, industry, layoutOverride) {
       copy.color_primary = '#9B3054'; copy.color_accent = '#9B3054'; copy.color_highlight = '#B03060'; copy.theme = 'light';
       return layoutSplit(place, copy, photos, industry);
     case 'realestate':      return templateRealEstate(place, copy, photos, industry);
+    // ── CLIENT-FACING ALIASES (used in Tally form layout picker) ──
+    case 'bold':            return layoutFullBleed(place, copy, photos, industry);
+    case 'clean':           return layoutSplit(place, copy, photos, industry);
     // ── LEGACY (still accessible via ?layout=) ──
     case 'split':           return layoutSplit(place, copy, photos, industry);
     case 'fullbleed':       return layoutFullBleed(place, copy, photos, industry);
