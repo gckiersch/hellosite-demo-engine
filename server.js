@@ -320,7 +320,7 @@ function galleryHTML(images, name, theme) {
   const bg = isDark ? '#0a0a0a' : '#fafaf8';
   const imgs = images.slice(0,3);
   if (imgs.length < 3) return '';
-  return `<div style="background:${bg};display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:4px;">
+  return `<div style="background:${bg};display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:4px;max-height:420px;">
     <div style="grid-row:1/3;overflow:hidden;"><img src="${imgs[0]}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>
     <div style="overflow:hidden;"><img src="${imgs[1]}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>
     <div style="overflow:hidden;"><img src="${imgs[2]}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>
