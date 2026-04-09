@@ -696,7 +696,8 @@ app.post('/api/domain-check', express.json(), async (req, res) => {
     const xml = await namecheapCall({ Command: 'namecheap.domains.check', DomainList: domains.join(',') });
     const matches = [...xml.matchAll(/Domain="([^"]+)"\s+Available="true"/g)];
     const available = matches.map(m => m[1]);
-    res.json({ available });
+    res.json({ available, debug: xml.substring(0, 800) });
+    console.log("NC XML:", xml.substring(0, 800));
   } catch (err) {
     console.error('domain-check error:', err);
     res.status(500).json({ error: err.message });
@@ -751,4 +752,8 @@ app.post('/api/domain-dns', express.json(), async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`HelloSite Demo Engine v5 on port ${PORT}`);
+  fetch('https://api.ipify.org?format=json')
+    .then(r => r.json())
+    .then(d => console.log(`Outbound IP: ${d.ip}`))
+    .catch(() => {});
 });
