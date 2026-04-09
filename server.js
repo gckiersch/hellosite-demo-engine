@@ -288,70 +288,26 @@ function servicesHTML(copy, primary, theme, style, industry) {
   const bg2 = isDark ? '#111' : '#f0ede8';
   const text = isDark ? '#f5f2ed' : '#1a1a1a';
   const muted = isDark ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.45)';
-  const border = isDark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.08)';
+  const border = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+  const isSerif = style === 'serif' || style === 'elegant';
+  const titleFont = isSerif ? `'Playfair Display',serif` : `'Bebas Neue',sans-serif`;
+  const titleSize = isSerif ? '1.05rem' : '1.1rem';
   const eyebrow = serviceEyebrows[industry] || 'Our Services';
-  const label = copy.services_label || eyebrow;
-  const services = copy.services || [];
-  const descs = copy.service_descs || [];
 
-  const header = `
+  const subLine = (industry === 'retail' && copy.services_sub)
+    ? `<p style="font-size:.92rem;color:${muted};line-height:1.7;max-width:540px;margin-top:.6rem;">${copy.services_sub}</p>`
+    : '';
+
+  return `<section id="services" style="padding:5rem 4rem;background:${bg};" class="mob-pad">
     <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:${primary};margin-bottom:.6rem;">${eyebrow}</p>
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,4vw,3.5rem);line-height:1;color:${text};margin-bottom:2rem;">${label}</h2>`;
-
-  // GROOMING — menu style, name left + desc/price right
-  if (industry === 'grooming') {
-    return `<section id="services" style="padding:4rem;background:${bg};" class="mob-pad">
-      ${header}
-      <div style="max-width:560px;">
-        ${services.map((s,i) => `
-        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:.9rem 0;border-bottom:1px solid ${border};">
-          <span style="font-size:1.05rem;color:${text};font-weight:400;">${s}</span>
-          <span style="font-size:.82rem;color:${primary};font-family:'DM Mono',monospace;white-space:nowrap;margin-left:1rem;">${descs[i]||''}</span>
-        </div>`).join('')}
-      </div>
-    </section>`;
-  }
-
-  // PET — 2-col cards
-  if (industry === 'pet') {
-    return `<section id="services" style="padding:4rem;background:${bg};" class="mob-pad">
-      ${header}
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem;max-width:640px;">
-        ${services.map((s,i) => `
-        <div style="background:${bg2};border:1.5px solid ${border};border-radius:10px;padding:1.1rem 1.25rem;">
-          <div style="width:20px;height:3px;background:${primary};border-radius:2px;margin-bottom:.7rem;"></div>
-          <div style="font-size:.92rem;font-weight:500;color:${text};margin-bottom:.3rem;">${s}</div>
-          ${descs[i]?`<div style="font-size:.75rem;color:${muted};line-height:1.5;">${descs[i]}</div>`:''}
-        </div>`).join('')}
-      </div>
-    </section>`;
-  }
-
-  // RETAIL — colored category tiles
-  const swatches = ['#F9EEF0','#EAF0EA','#F0EAF4','#FFF3E8','#EAF0F8','#FFE8E8'];
-  const swatchText = ['#72243E','#27500A','#72243E','#633806','#0C447C','#791F1F'];
-  if (industry === 'retail') {
-    return `<section id="services" style="padding:4rem;background:${bg2};" class="mob-pad">
-      ${header}
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem;max-width:640px;">
-        ${services.map((s,i) => `
-        <div style="background:${swatches[i%swatches.length]};border-radius:8px;padding:1rem 1.1rem;">
-          <div style="font-size:.95rem;font-weight:600;color:${swatchText[i%swatchText.length]};margin-bottom:.25rem;">${s}</div>
-          ${descs[i]?`<div style="font-size:.75rem;color:${swatchText[i%swatchText.length]};opacity:.7;">${descs[i]}</div>`:''}
-        </div>`).join('')}
-      </div>
-    </section>`;
-  }
-
-  // TRADES / DEFAULT — clean 3-col grid, collapses to 1 on mobile
-  return `<section id="services" style="padding:4rem;background:${bg};" class="mob-pad">
-    ${header}
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:${border};border:1px solid ${border};border-radius:6px;overflow:hidden;" class="mob-stack">
-      ${services.map((s,i) => `
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;color:${text};">${copy.services_label||eyebrow}</h2>
+    ${subLine}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:${border};border:1px solid ${border};border-radius:6px;overflow:hidden;margin-top:2.5rem;" class="mob-stack">
+      ${copy.services.map((s,i) => `
       <div style="background:${bg};padding:1.75rem 2rem;transition:background .2s;" onmouseover="this.style.background='${bg2}'" onmouseout="this.style.background='${bg}'">
-        <div style="width:28px;height:3px;background:${primary};margin-bottom:.9rem;border-radius:2px;"></div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.03em;margin-bottom:.5rem;color:${text};line-height:1.2;">${s}</div>
-        <div style="font-size:.8rem;color:${muted};line-height:1.68;">${descs[i]||''}</div>
+        <div style="width:32px;height:3px;background:${primary};margin-bottom:1rem;border-radius:2px;opacity:.8;"></div>
+        <div style="font-family:${titleFont};font-size:${titleSize};letter-spacing:${isSerif?'-.01em':'.03em'};margin-bottom:.5rem;color:${text};line-height:1.2;font-weight:${isSerif?700:400};">${s}</div>
+        <div style="font-size:.8rem;color:${muted};line-height:1.68;">${copy.service_descs[i]||''}</div>
       </div>`).join('')}
     </div>
   </section>`;
