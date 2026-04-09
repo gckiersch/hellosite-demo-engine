@@ -85,6 +85,7 @@ async function classifyPhotos(photoUrls, industry) {
       })
     });
     const data = await res.json();
+    if (!data.content?.[0]?.text) throw new Error('Classifier API error');
     const classifications = JSON.parse(data.content[0].text.trim());
     // FIX #3 — exclude logo/text photos entirely
     const classified = toClassify.map((url, i) => ({
@@ -194,6 +195,10 @@ Return ONLY valid JSON — no markdown, no backticks:
     body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1400, messages: [{ role: 'user', content: prompt }] })
   });
   const data = await res.json();
+  if (!data.content?.[0]?.text) {
+    console.error('Claude API error:', JSON.stringify(data));
+    throw new Error(`Claude API error: ${data.error?.message || data.type || 'unknown'}`);
+  }
   const text = data.content[0].text.trim();
   try { return JSON.parse(text); }
   catch { const m = text.match(/\{[\s\S]*\}/); if (m) return JSON.parse(m[0]); throw new Error('Bad JSON'); }
@@ -602,7 +607,7 @@ function renderDemo(place, copy, photos, industry, layoutOverride) {
 
 // ─── MAIN ROUTE ──────────────────────────────────────────────────────────────
 app.get('/demo', async (req, res) => {
-  const { place_id, refresh, layout } = req.query;
+  const { place_id, refresh, layout, _ready } = req.query;
   if (!place_id) return res.status(400).send('Missing place_id');
 
   const cacheKey = `${place_id}:${layout||'default'}`;
@@ -613,6 +618,61 @@ app.get('/demo', async (req, res) => {
     return res.send(demoCache.get(cacheKey));
   }
 
+  // If not ready yet, show loading screen immediately and build in background
+  if (_ready !== 'true') {
+    const pollUrl = `/demo?place_id=${place_id}&_ready=true${layout?`&layout=${layout}`:''}`;
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Turning On Your Site | HelloSite</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0a0a0a;color:#f5f2ed;font-family:'DM Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;}
+  .dot{width:8px;height:8px;border-radius:50%;background:#f5f2ed;display:inline-block;margin:0 4px;animation:pulse 1.4s ease-in-out infinite;}
+  .dot:nth-child(2){animation-delay:.2s;}
+  .dot:nth-child(3){animation-delay:.4s;}
+  @keyframes pulse{0%,80%,100%{opacity:.2;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+</style>
+</head>
+<body>
+  <div>
+    <div style="margin-bottom:2rem;">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+    <p style="font-size:.82rem;letter-spacing:.15em;text-transform:uppercase;opacity:.5;">Turning on your site</p>
+  </div>
+  <script>
+    // Poll until the demo is ready
+    (function poll(){
+      fetch('${pollUrl}', {method:'HEAD'}).then(r => {
+        if(r.ok) window.location.href = '${pollUrl}';
+        else setTimeout(poll, 1500);
+      }).catch(()=>setTimeout(poll, 1500));
+    })();
+  </script>
+</body>
+</html>`);
+
+    // Build in background (don't await)
+    buildAndCache(place_id, layout, cacheKey).catch(err => console.error('Background build error:', err));
+    return;
+  }
+
+  // _ready=true — return cached if available, else build now
+  if (demoCache.has(cacheKey)) {
+    res.setHeader('Content-Type', 'text/html');
+    return res.send(demoCache.get(cacheKey));
+  }
+
+  // Still building — tell client to wait
+  res.status(202).send('building');
+  return;
+});
+
+async function buildAndCache(place_id, layout, cacheKey) {
   try {
     console.log(`\n━━━ ${place_id}`);
     const place = await getPlaceDetails(place_id);
@@ -620,7 +680,8 @@ app.get('/demo', async (req, res) => {
     console.log(`✓ ${place.displayName?.text} → ${industry}`);
 
     if (industry === 'unsupported') {
-      return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
+      demoCache.set(cacheKey, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
+      return;
     }
 
     const allPhotoUrls = (place.photos||[]).slice(0,8).map(p=>getPhotoUrl(p.name,1400));
@@ -633,14 +694,11 @@ app.get('/demo', async (req, res) => {
     demoCache.set(cacheKey, html);
     console.log(`✓ Done — ${industry} / ${layout||defaultLayouts[industry]}`);
 
-    res.setHeader('Content-Type', 'text/html');
-    res.send(html);
-
   } catch (err) {
-    console.error(err);
-    res.status(500).send(`<pre style="padding:2rem;font-family:monospace;">Error: ${err.message}\n\n${err.stack}</pre>`);
+    console.error('buildAndCache error:', err);
+    demoCache.set(cacheKey, `<pre style="padding:2rem;font-family:monospace;">Error: ${err.message}</pre>`);
   }
-});
+}
 
 app.get('/cache', (req, res) => {
   const keys = [...demoCache.keys()];
