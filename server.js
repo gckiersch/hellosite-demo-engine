@@ -668,7 +668,7 @@ app.get('/demo', async (req, res) => {
   }
 
   // Still building — tell client to wait
-  res.status(202).send('building');
+  res.status(503).send('building');
   return;
 });
 
