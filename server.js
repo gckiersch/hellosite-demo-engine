@@ -371,30 +371,35 @@ function contactHTML(copy, place, primary, highlight, theme) {
   const bg2 = isDark ? '#141414' : '#f0ede8';
   const text = isDark ? '#f5f2ed' : '#1a1a1a';
   const muted = isDark ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.4)';
-  const border = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
-  const cp = cleanPhone(phone);
+  const border = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
 
-  return `<section id="contact" style="padding:4rem;background:${bg2};" class="mob-pad">
-    <div style="max-width:680px;margin:0 auto;">
-      <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:${primary};margin-bottom:.75rem;">Get In Touch</p>
-      ${phone ? `<a href="tel:${cp}" style="display:block;font-family:'Bebas Neue',sans-serif;font-size:clamp(2.2rem,6vw,3.8rem);line-height:1;color:${text};text-decoration:none;margin-bottom:.4rem;letter-spacing:.02em;">${phone}</a>` : ''}
-      <p style="font-size:.85rem;color:${muted};margin-bottom:1.75rem;line-height:1.6;">${address}</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:2.5rem;">
-        ${phone ? `<a href="tel:${cp}" style="display:block;text-align:center;padding:.9rem;background:${primary};color:${isDark?'#fff':'#fff'};text-decoration:none;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;">Call Now</a>` : ''}
-        <a href="https://maps.google.com/?q=${encodeURIComponent(address)}" target="_blank" style="display:block;text-align:center;padding:.9rem;background:transparent;border:1px solid ${border};color:${text};text-decoration:none;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;">Get Directions</a>
+  return `<section id="contact" style="padding:5rem 4rem;background:${bg};" class="mob-pad">
+    <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:start;" class="mob-stack">
+    <div>
+      <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:${primary};margin-bottom:.5rem;">Come See Us</p>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;color:${text};margin-bottom:.85rem;">${copy.cta_heading||'Get In Touch'}</h2>
+      <p style="font-size:.88rem;color:${muted};line-height:1.78;max-width:360px;margin-bottom:2rem;">${copy.cta_sub||''}</p>
+      ${hours.length ? `<div style="margin-top:1rem;">${hours.map(h => {
+        const [day,...rest] = h.split(': ');
+        const time = rest.join(': ');
+        const closed = !time||time.toLowerCase().includes('closed');
+        return `<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid ${border};">
+          <span style="font-size:.75rem;color:${muted};">${day}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:.72rem;color:${closed?(isDark?'#333':'#ccc'):text};">${time||'Closed'}</span>
+        </div>`;
+      }).join('')}</div>` : ''}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.75rem;">
+      ${phone?`<a href="tel:${cleanPhone(phone)}" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;background:${bg2};border:1px solid ${border};border-radius:4px;text-decoration:none;color:${text};">
+        <span style="font-size:1.1rem;">📞</span>
+        <div><div style="font-size:.6rem;color:${muted};letter-spacing:.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:.15rem;">Phone</div><div style="font-size:.92rem;font-weight:500;">${phone}</div></div>
+      </a>`:''}
+      <div style="display:flex;align-items:flex-start;gap:1rem;padding:1rem 1.25rem;background:${bg2};border:1px solid ${border};border-radius:4px;">
+        <span style="font-size:1.1rem;margin-top:.1rem;">📍</span>
+        <div><div style="font-size:.6rem;color:${muted};letter-spacing:.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:.15rem;">Address</div><div style="font-size:.85rem;line-height:1.5;">${address}</div></div>
       </div>
-      ${hours.length ? `
-      <div style="border-top:1px solid ${border};padding-top:1.5rem;">
-        ${hours.map(h => {
-          const [day,...rest] = h.split(': ');
-          const time = rest.join(': ');
-          const closed = !time || time.toLowerCase().includes('closed');
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.55rem 0;border-bottom:1px solid ${border};">
-            <span style="font-size:.82rem;color:${muted};">${day}</span>
-            <span style="font-size:.82rem;font-family:'DM Mono',monospace;color:${closed?(isDark?'rgba(255,255,255,.2)':'rgba(0,0,0,.2)'):text};">${time||'Closed'}</span>
-          </div>`;
-        }).join('')}
-      </div>` : ''}
+      <a href="https://maps.google.com/?q=${encodeURIComponent(address)}" target="_blank" style="display:block;text-align:center;padding:.85rem;background:${highlight};color:${isDark?'#000':'#fff'};text-decoration:none;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-top:.25rem;">Get Directions →</a>
+    </div>
     </div>
   </section>`;
 }
