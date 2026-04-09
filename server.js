@@ -751,8 +751,4 @@ app.post('/api/domain-dns', express.json(), async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`HelloSite Demo Engine v5 on port ${PORT}`);
-  fetch('https://api.ipify.org?format=json')
-    .then(r => r.json())
-    .then(d => console.log(`Outbound IP: ${d.ip}`))
-    .catch(() => {});
 });
