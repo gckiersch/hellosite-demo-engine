@@ -241,9 +241,9 @@ function baseHTML(name, theme, body) {
   .mob-only{display:none!important;}
   @media(max-width:768px){
     .mob-hide{display:none!important;}
-    .mob-only{display:inline-block!important;}
+    .mob-only{display:inline-flex!important;}
     .mob-show{display:inline-flex!important;}
-    .mob-stack{grid-template-columns:1fr!important;min-height:auto!important;}
+    .mob-stack{grid-template-columns:1fr!important;height:auto!important;}
     .mob-pad{padding:3.5rem 1.5rem!important;}
     footer{flex-direction:column!important;gap:.75rem!important;text-align:center!important;padding:1.5rem!important;}
   }
