@@ -85,7 +85,6 @@ async function classifyPhotos(photoUrls, industry) {
       })
     });
     const data = await res.json();
-    if (!data.content?.[0]?.text) throw new Error('Classifier API error');
     const classifications = JSON.parse(data.content[0].text.trim());
     // FIX #3 — exclude logo/text photos entirely
     const classified = toClassify.map((url, i) => ({
@@ -195,10 +194,6 @@ Return ONLY valid JSON — no markdown, no backticks:
     body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1400, messages: [{ role: 'user', content: prompt }] })
   });
   const data = await res.json();
-  if (!data.content?.[0]?.text) {
-    console.error('Claude API error:', JSON.stringify(data));
-    throw new Error(`Claude API error: ${data.error?.message || data.type || 'unknown'}`);
-  }
   const text = data.content[0].text.trim();
   try { return JSON.parse(text); }
   catch { const m = text.match(/\{[\s\S]*\}/); if (m) return JSON.parse(m[0]); throw new Error('Bad JSON'); }
@@ -243,13 +238,10 @@ function baseHTML(name, theme, body) {
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   .fu{opacity:0;animation:fadeUp .7s ease forwards;}
   .d1{animation-delay:.15s}.d2{animation-delay:.3s}.d3{animation-delay:.45s}.d4{animation-delay:.6s}
-  .mob-only{display:none!important;}
   @media(max-width:768px){
     .mob-hide{display:none!important;}
-    .mob-only{display:inline-flex!important;}
-    .mob-show{display:inline-flex!important;}
-    .mob-stack{grid-template-columns:1fr!important;height:auto!important;}
-    .mob-pad{padding:5.5rem 1.5rem 2.5rem!important;}
+    .mob-stack{grid-template-columns:1fr!important;min-height:auto!important;}
+    .mob-pad{padding:3.5rem 1.5rem!important;}
     footer{flex-direction:column!important;gap:.75rem!important;text-align:center!important;padding:1.5rem!important;}
   }
 </style>
@@ -267,21 +259,18 @@ function navHTML(shortName, copy, theme, links) {
   const border = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
   const h = copy.color_highlight || copy.color_primary;
   const btnColor = isDark ? '#000' : '#fff';
-  const phone = copy.phone || '';
-  const cp = phone.replace(/\D/g,'');
-  return `<nav style="position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.5rem;background:${bg};backdrop-filter:blur(16px);border-bottom:1px solid ${border};">
+  return `<nav style="position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:.9rem 2.5rem;background:${bg};backdrop-filter:blur(16px);border-bottom:1px solid ${border};">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.06em;color:${text};">${shortName}</div>
-    <div style="display:flex;align-items:center;gap:2rem;">
-      <ul style="display:flex;gap:2rem;list-style:none;align-items:center;margin:0;padding:0;" class="mob-hide">
-        ${links.slice(0,-1).map(l => `<li><a href="#${l.toLowerCase().replace(/\s/g,'')}" style="color:${muted};text-decoration:none;font-size:.73rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;">${l}</a></li>`).join('')}
-      </ul>
-      <a href="#contact" style="background:${h};color:${btnColor};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;" class="mob-hide">${links[links.length-1]}</a>
-      ${cp ? `<a href="tel:${cp}" style="background:${h};color:${btnColor};padding:.45rem 1rem;border-radius:3px;text-decoration:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;" class="mob-only">📞 Call</a>` : ''}
-    </div>
+    <ul style="display:flex;gap:2rem;list-style:none;align-items:center;" class="mob-hide">
+      ${links.map((l,i) => i===links.length-1
+        ? `<li><a href="#contact" style="background:${h};color:${btnColor};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">${l}</a></li>`
+        : `<li><a href="#${l.toLowerCase().replace(/\s/g,'')}" style="color:${muted};text-decoration:none;font-size:.73rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;">${l}</a></li>`
+      ).join('')}
+    </ul>
   </nav>`;
 }
 
-// ─── SHARED: SERVICES ────────────────────────────────────────────────────────
+// ─── SHARED: SERVICES — FIX #1 eyebrow static, heading dynamic ───────────────
 function servicesHTML(copy, primary, theme, style, industry) {
   const isDark = theme === 'dark';
   const bg = isDark ? '#0a0a0a' : '#fafaf8';
@@ -294,6 +283,7 @@ function servicesHTML(copy, primary, theme, style, industry) {
   const titleSize = isSerif ? '1.05rem' : '1.1rem';
   const eyebrow = serviceEyebrows[industry] || 'Our Services';
 
+  // FIX #2 — retail gets services_sub shown below heading
   const subLine = (industry === 'retail' && copy.services_sub)
     ? `<p style="font-size:.92rem;color:${muted};line-height:1.7;max-width:540px;margin-top:.6rem;">${copy.services_sub}</p>`
     : '';
@@ -319,11 +309,10 @@ function galleryHTML(images, name, theme) {
   const isDark = theme === 'dark';
   const bg = isDark ? '#0a0a0a' : '#fafaf8';
   const imgs = images.slice(0,3);
-  if (imgs.length < 3) return '';
-  return `<div style="background:${bg};display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:4px;max-height:420px;">
-    <div style="grid-row:1/3;overflow:hidden;"><img src="${imgs[0]}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>
-    <div style="overflow:hidden;"><img src="${imgs[1]}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>
-    <div style="overflow:hidden;"><img src="${imgs[2]}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>
+  return `<div style="background:${bg};">
+    <div style="display:grid;grid-template-columns:repeat(${imgs.length},1fr);gap:4px;">
+      ${imgs.map(url=>`<div style="aspect-ratio:4/3;overflow:hidden;"><img src="${url}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}
+    </div>
   </div>`;
 }
 
@@ -399,6 +388,7 @@ function contactHTML(copy, place, primary, highlight, theme) {
         <div><div style="font-size:.6rem;color:${muted};letter-spacing:.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:.15rem;">Address</div><div style="font-size:.85rem;line-height:1.5;">${address}</div></div>
       </div>
       <a href="https://maps.google.com/?q=${encodeURIComponent(address)}" target="_blank" style="display:block;text-align:center;padding:.85rem;background:${highlight};color:${isDark?'#000':'#fff'};text-decoration:none;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-top:.25rem;">Get Directions →</a>
+      ${copy.booking_url ? `<a href="${copy.booking_url}" target="_blank" style="display:block;text-align:center;padding:.85rem;background:${primary};color:#fff;text-decoration:none;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-top:.25rem;">Book Appointment →</a>` : ''}
     </div>
     </div>
   </section>`;
@@ -495,7 +485,6 @@ function layoutSplit(place, copy, photos, industry) {
                    `Book — ${phone}`;
 
   const city = address.split(',')[1]?.trim().split(' ')[0] || 'Local';
-  copy.phone = phone;
 
   const navLinks = industry === 'retail'
     ? ['Shop','Gallery','Reviews','Call Us']
@@ -595,6 +584,9 @@ function renderDemo(place, copy, photos, industry, layoutOverride) {
       copy.color_primary = '#9B3054'; copy.color_accent = '#9B3054'; copy.color_highlight = '#B03060'; copy.theme = 'light';
       return layoutSplit(place, copy, photos, industry);
     case 'realestate':      return templateRealEstate(place, copy, photos, industry);
+    // ── CLIENT-FACING ALIASES (used in Tally form layout picker) ──
+    case 'bold':            return layoutFullBleed(place, copy, photos, industry);
+    case 'clean':           return layoutSplit(place, copy, photos, industry);
     // ── LEGACY (still accessible via ?layout=) ──
     case 'split':           return layoutSplit(place, copy, photos, industry);
     case 'fullbleed':       return layoutFullBleed(place, copy, photos, industry);
@@ -606,7 +598,7 @@ function renderDemo(place, copy, photos, industry, layoutOverride) {
 
 // ─── MAIN ROUTE ──────────────────────────────────────────────────────────────
 app.get('/demo', async (req, res) => {
-  const { place_id, refresh, layout, _ready } = req.query;
+  const { place_id, refresh, layout, booking_url } = req.query;
   if (!place_id) return res.status(400).send('Missing place_id');
 
   const cacheKey = `${place_id}:${layout||'default'}`;
@@ -617,61 +609,6 @@ app.get('/demo', async (req, res) => {
     return res.send(demoCache.get(cacheKey));
   }
 
-  // If not ready yet, show loading screen immediately and build in background
-  if (_ready !== 'true') {
-    const pollUrl = `/demo?place_id=${place_id}&_ready=true${layout?`&layout=${layout}`:''}`;
-    res.setHeader('Content-Type', 'text/html');
-    res.send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Turning On Your Site | HelloSite</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:#0a0a0a;color:#f5f2ed;font-family:'DM Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;}
-  .dot{width:8px;height:8px;border-radius:50%;background:#f5f2ed;display:inline-block;margin:0 4px;animation:pulse 1.4s ease-in-out infinite;}
-  .dot:nth-child(2){animation-delay:.2s;}
-  .dot:nth-child(3){animation-delay:.4s;}
-  @keyframes pulse{0%,80%,100%{opacity:.2;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
-</style>
-</head>
-<body>
-  <div>
-    <div style="margin-bottom:2rem;">
-      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-    </div>
-    <p style="font-size:.82rem;letter-spacing:.15em;text-transform:uppercase;opacity:.5;">Turning on your site</p>
-  </div>
-  <script>
-    // Poll until the demo is ready
-    (function poll(){
-      fetch('${pollUrl}', {method:'HEAD'}).then(r => {
-        if(r.ok) window.location.href = '${pollUrl}';
-        else setTimeout(poll, 1500);
-      }).catch(()=>setTimeout(poll, 1500));
-    })();
-  </script>
-</body>
-</html>`);
-
-    // Build in background (don't await)
-    buildAndCache(place_id, layout, cacheKey).catch(err => console.error('Background build error:', err));
-    return;
-  }
-
-  // _ready=true — return cached if available, else build now
-  if (demoCache.has(cacheKey)) {
-    res.setHeader('Content-Type', 'text/html');
-    return res.send(demoCache.get(cacheKey));
-  }
-
-  // Still building — tell client to wait
-  res.status(503).send('building');
-  return;
-});
-
-async function buildAndCache(place_id, layout, cacheKey) {
   try {
     console.log(`\n━━━ ${place_id}`);
     const place = await getPlaceDetails(place_id);
@@ -679,8 +616,7 @@ async function buildAndCache(place_id, layout, cacheKey) {
     console.log(`✓ ${place.displayName?.text} → ${industry}`);
 
     if (industry === 'unsupported') {
-      demoCache.set(cacheKey, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
-      return;
+      return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
     }
 
     const allPhotoUrls = (place.photos||[]).slice(0,8).map(p=>getPhotoUrl(p.name,1400));
@@ -689,15 +625,19 @@ async function buildAndCache(place_id, layout, cacheKey) {
       generateCopy(place, industry)
     ]);
 
+    if (booking_url) copy.booking_url = booking_url;
     const html = renderDemo(place, copy, photos, industry, layout);
     demoCache.set(cacheKey, html);
     console.log(`✓ Done — ${industry} / ${layout||defaultLayouts[industry]}`);
 
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+
   } catch (err) {
-    console.error('buildAndCache error:', err);
-    demoCache.set(cacheKey, `<pre style="padding:2rem;font-family:monospace;">Error: ${err.message}</pre>`);
+    console.error(err);
+    res.status(500).send(`<pre style="padding:2rem;font-family:monospace;">Error: ${err.message}\n\n${err.stack}</pre>`);
   }
-}
+});
 
 app.get('/cache', (req, res) => {
   const keys = [...demoCache.keys()];
@@ -732,5 +672,103 @@ app.get('/', (req, res) => {
     </ul>`);
 });
 
+// ─── NAMECHEAP PROXY ─────────────────────────────────────────────────────────
+// n8n Cloud has no static IP — route all Namecheap calls through Railway
+// Whitelist this Railway server's IP in Namecheap API settings once
+
+const NAMECHEAP_USER = process.env.NAMECHEAP_USER;
+const NAMECHEAP_API_KEY = process.env.NAMECHEAP_API_KEY;
+const NC_BASE = `https://api.namecheap.com/xml.response`;
+
+let cachedOutboundIP = process.env.NAMECHEAP_CLIENT_IP || null;
+
+async function getOutboundIP() {
+  if (cachedOutboundIP) return cachedOutboundIP;
+  try {
+    const r = await fetch('https://api.ipify.org?format=json');
+    const d = await r.json();
+    cachedOutboundIP = d.ip;
+    console.log(`Outbound IP cached: ${cachedOutboundIP}`);
+    return cachedOutboundIP;
+  } catch {
+    return process.env.NAMECHEAP_CLIENT_IP;
+  }
+}
+
+async function namecheapCall(params) {
+  const ip = await getOutboundIP();
+  const base = `${NC_BASE}?ApiUser=${NAMECHEAP_USER}&ApiKey=${NAMECHEAP_API_KEY}&UserName=${NAMECHEAP_USER}&ClientIp=${ip}`;
+  const query = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  const res = await fetch(`${base}&${query}`);
+  return res.text();
+}
+
+// POST /api/domain-check  { domains: ["example.com","example2.com"] }
+app.post('/api/domain-check', express.json(), async (req, res) => {
+  try {
+    const { domains } = req.body;
+    if (!domains?.length) return res.status(400).json({ error: 'Missing domains' });
+    const xml = await namecheapCall({ Command: 'namecheap.domains.check', DomainList: domains.join(',') });
+    const matches = [...xml.matchAll(/Domain="([^"]+)"\s+Available="true"/g)];
+    const available = matches.map(m => m[1]);
+    res.json({ available, debug: xml.substring(0, 800) });
+    console.log("NC XML:", xml.substring(0, 800));
+  } catch (err) {
+    console.error('domain-check error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/domain-register  { domain: "example.com", email: "cam@gethellosite.com", phone: "+13105550000" }
+app.post('/api/domain-register', express.json(), async (req, res) => {
+  try {
+    const { domain, email, phone } = req.body;
+    if (!domain) return res.status(400).json({ error: 'Missing domain' });
+    const contact = {
+      FirstName: 'Cam', LastName: 'HelloSite',
+      Address1: '123 Main St', City: 'Los Angeles',
+      StateProvince: 'CA', PostalCode: '90277', Country: 'US',
+      EmailAddress: email || NAMECHEAP_USER,
+      Phone: phone || '+13105550000'
+    };
+    const contactParams = {};
+    ['AuxBilling','Tech','Registrant','Admin'].forEach(type => {
+      Object.entries(contact).forEach(([k,v]) => { contactParams[`${type}${k}`] = v; });
+    });
+    const xml = await namecheapCall({ Command: 'namecheap.domains.create', DomainName: domain, Years: 1, ...contactParams });
+    const success = xml.includes('Domain="true"') || xml.includes('Registered="true"');
+    res.json({ success, xml });
+  } catch (err) {
+    console.error('domain-register error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/domain-dns  { domain: "example.com", target: "your-app.up.railway.app" }
+app.post('/api/domain-dns', express.json(), async (req, res) => {
+  try {
+    const { domain, target } = req.body;
+    if (!domain || !target) return res.status(400).json({ error: 'Missing domain or target' });
+    const [sld, tld] = domain.split('.');
+    const xml = await namecheapCall({
+      Command: 'namecheap.domains.dns.setHosts',
+      SLD: sld, TLD: tld,
+      HostName1: '@', RecordType1: 'CNAME', Address1: target, TTL1: 300,
+      HostName2: 'www', RecordType2: 'CNAME', Address2: target, TTL2: 300
+    });
+    const success = xml.includes('IsSuccess="true"');
+    res.json({ success, xml });
+  } catch (err) {
+    console.error('domain-dns error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`HelloSite Demo Engine v5 on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`HelloSite Demo Engine v5 on port ${PORT}`);
+  fetch('https://api.ipify.org?format=json')
+    .then(r => r.json())
+    .then(d => console.log(`Outbound IP: ${d.ip}`))
+    .catch(() => {});
+});
