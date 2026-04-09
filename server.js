@@ -678,11 +678,26 @@ app.get('/', (req, res) => {
 
 const NAMECHEAP_USER = process.env.NAMECHEAP_USER;
 const NAMECHEAP_API_KEY = process.env.NAMECHEAP_API_KEY;
-const NAMECHEAP_CLIENT_IP = process.env.NAMECHEAP_CLIENT_IP;
 const NC_BASE = `https://api.namecheap.com/xml.response`;
 
+let cachedOutboundIP = process.env.NAMECHEAP_CLIENT_IP || null;
+
+async function getOutboundIP() {
+  if (cachedOutboundIP) return cachedOutboundIP;
+  try {
+    const r = await fetch('https://api.ipify.org?format=json');
+    const d = await r.json();
+    cachedOutboundIP = d.ip;
+    console.log(`Outbound IP cached: ${cachedOutboundIP}`);
+    return cachedOutboundIP;
+  } catch {
+    return process.env.NAMECHEAP_CLIENT_IP;
+  }
+}
+
 async function namecheapCall(params) {
-  const base = `${NC_BASE}?ApiUser=${NAMECHEAP_USER}&ApiKey=${NAMECHEAP_API_KEY}&UserName=${NAMECHEAP_USER}&ClientIp=${NAMECHEAP_CLIENT_IP}`;
+  const ip = await getOutboundIP();
+  const base = `${NC_BASE}?ApiUser=${NAMECHEAP_USER}&ApiKey=${NAMECHEAP_API_KEY}&UserName=${NAMECHEAP_USER}&ClientIp=${ip}`;
   const query = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
   const res = await fetch(`${base}&${query}`);
   return res.text();
