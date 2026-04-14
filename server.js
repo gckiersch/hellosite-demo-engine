@@ -27,13 +27,35 @@ const heroOverrides = {
 function detectIndustry(place) {
   const types = (place.types || []).join(',').toLowerCase();
   const primary = (place.primaryTypeDisplayName?.text || '').toLowerCase();
+  const name = (place.displayName?.text || '').toLowerCase();
+  const combined = `${types} ${primary} ${name}`;
+
+  // Trades: plumbing, electrical, auto repair + auto detail, cleaning, lawn care
   if (types.match(/car_repair|electrician|plumber|contractor|roofing|locksmith|auto_parts|auto_repair/)) return 'trades';
+  if (types.match(/car_wash|car_detail|cleaning_service|lawn_care|landscaping|tree_service|janitorial/)) return 'trades';
+  if (combined.match(/auto[\s_-]?detail|car[\s_-]?detail|ceramic[\s_-]?coat|mobile[\s_-]?detail/)) return 'trades';
+  if (combined.match(/\bcleaning\b|maid[\s_-]?service|janitorial|house[\s_-]?clean|carpet[\s_-]?clean/)) return 'trades';
+  if (combined.match(/lawn[\s_-]?care|lawn[\s_-]?mow|landscap|yard[\s_-]?maintenanc|lawn[\s_-]?service|tree[\s_-]?service/)) return 'trades';
+
+  // Pet groomers
   if (types.match(/pet_care|veterinary|pet_grooming|animal/) || primary.includes('pet') || primary.includes('dog') || primary.includes('cat')) return 'pet';
-  if (types.match(/barber_shop/) || primary.includes('barber')) return 'grooming';
+  if (combined.match(/dog[\s_-]?groom|pet[\s_-]?groom|mobile[\s_-]?pet|dog[\s_-]?spa|cat[\s_-]?groom/)) return 'pet';
+
+  // Grooming: barbers, nail techs, tattoo, hair
+  if (types.match(/barber_shop/) || primary.includes('barber') || combined.match(/barbershop|mens[\s_-]?haircut|\bfade\b/)) return 'grooming';
   if (types.match(/hair_salon|hair_care/) || primary.includes('hair')) return 'grooming';
-  if (types.match(/nail_salon|spa|massage|beauty_salon/)) return 'wellness';
+  if (types.match(/nail_salon/) || combined.match(/nail[\s_-]?tech|acrylic[\s_-]?nail|gel[\s_-]?nail|manicure|pedicure/)) return 'grooming';
+  if (types.match(/tattoo_parlor|body_art_service/) || combined.match(/\btattoo\b|body[\s_-]?art|\bpiercing\b/)) return 'grooming';
+
+  // Wellness: spa, massage, beauty, fitness, tutors
+  if (types.match(/spa|massage|beauty_salon/)) return 'wellness';
+  if (types.match(/gym|fitness|yoga|sports_club/) || combined.match(/personal[\s_-]?trainer|crossfit|pilates/)) return 'wellness';
+  if (combined.match(/\btutor\b|test[\s_-]?prep|learning[\s_-]?center/)) return 'wellness';
+
+  // Unsupported: food/restaurant
   if (types.match(/restaurant|cafe|bakery|bar|food|meal/)) return 'unsupported';
-  if (types.match(/gym|fitness|yoga|sports_club/)) return 'unsupported';
+
+  // Retail fallback
   if (types.match(/store|shop|gift|clothing|jewelry|boutique/)) return 'retail';
   return 'retail';
 }
