@@ -625,13 +625,10 @@ app.get('/demo', async (req, res) => {
       return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
     }
 
-    // Review count filter: only generate demos for businesses with 10-200 reviews
+    // Review count filter: only generate demos for businesses with at least 10 reviews
     const reviewCount = place.userRatingCount || 0;
-    if (reviewCount < 10 || reviewCount > 200) {
-      const msg = reviewCount < 10
-        ? 'This business needs at least 10 Google reviews before we can build a great demo.'
-        : 'This business has over 200 reviews and may need a custom approach.';
-      return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Not Quite Ready</h1><p style="opacity:.6;max-width:400px;margin:0 auto 1.5rem;line-height:1.7;">${msg}</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
+    if (reviewCount < 10) {
+      return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Not Quite Ready</h1><p style="opacity:.6;max-width:400px;margin:0 auto 1.5rem;line-height:1.7;">This business needs at least 10 Google reviews before we can build a great demo.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
     }
 
     const allPhotoUrls = (place.photos||[]).slice(0,8).map(p=>getPhotoUrl(p.name,1400));
