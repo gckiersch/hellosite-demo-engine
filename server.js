@@ -20,7 +20,7 @@ const demoCache = new Map();
 // Bypasses classifier entirely — use when Google photos have text/logos
 const heroOverrides = {
   'ChIJj-aliA_PwoARI36KBu4KTcQ': 'https://lh3.googleusercontent.com/p/AF1QipMLDOab55zCroTuQn8MfxNaD9mM7VsETR0ub6SB=s1360-w1360-h1020-rw', // TNT Auto Repair
-  // 'ChIJuZ--3qnHwoARRyWOYPuvQVk': 'PASTE_CLEAN_LAMAY_PHOTO_URL_HERE', // Làmay Nail Spa
+  'ChIJuZ--3qnHwoARRyWOYPuvQVk': 'REJECT', // Làmay Nail Spa — hero photo rejected, use gallery only
 };
 
 // ─── INDUSTRY ROUTING ────────────────────────────────────────────────────────
@@ -120,6 +120,11 @@ async function classifyPhotos(photoUrls, industry) {
 // ─── CLASSIFY WITH OVERRIDE CHECK ────────────────────────────────────────────
 async function classifyPhotosWithOverride(photoUrls, industry, placeId) {
   const override = heroOverrides[placeId];
+  if (override === 'REJECT') {
+    // Hero rejected — classify all as gallery, use best gallery photo as hero
+    const result = await classifyPhotos(photoUrls, industry);
+    return { hero: result.gallery?.[0] || photoUrls[0], gallery: result.gallery?.slice(1) || photoUrls.slice(1) };
+  }
   if (override) {
     // Use override as hero, classify rest for gallery
     const galleryUrls = photoUrls.filter(u => u !== override);
@@ -240,8 +245,9 @@ function baseHTML(name, theme, body) {
   .d1{animation-delay:.15s}.d2{animation-delay:.3s}.d3{animation-delay:.45s}.d4{animation-delay:.6s}
   @media(max-width:768px){
     .mob-hide{display:none!important;}
-    .mob-stack{grid-template-columns:1fr!important;min-height:auto!important;}
+    .mob-stack{grid-template-columns:1fr!important;min-height:auto!important;gap:2rem!important;}
     .mob-pad{padding:3.5rem 1.5rem!important;}
+    #contact .mob-stack,#contact.mob-pad{text-align:left;}
     footer{flex-direction:column!important;gap:.75rem!important;text-align:center!important;padding:1.5rem!important;}
   }
 </style>
@@ -263,7 +269,7 @@ function navHTML(shortName, copy, theme, links) {
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.06em;color:${text};">${shortName}</div>
     <ul style="display:flex;gap:2rem;list-style:none;align-items:center;" class="mob-hide">
       ${links.map((l,i) => i===links.length-1
-        ? `<li><a href="#contact" style="background:${h};color:${btnColor};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">${l}</a></li>`
+        ? `<li><a href="https://www.gethellosite.com/#hero-form" style="background:${h};color:${btnColor};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">See my site</a></li>`
         : `<li><a href="#${l.toLowerCase().replace(/\s/g,'')}" style="color:${muted};text-decoration:none;font-size:.73rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;">${l}</a></li>`
       ).join('')}
     </ul>
@@ -553,7 +559,7 @@ function layoutWellness(place, copy, photos, industry) {
         <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(3.5rem,7vw,6rem);font-weight:700;line-height:1.0;letter-spacing:-.02em;color:#fff;margin-bottom:1.25rem;" class="fu d1">${copy.hero_headline.replace(/\\n|\n/g,'<br>')}</h1>
         <p style="font-size:1.05rem;color:rgba(255,255,255,.65);line-height:1.75;max-width:500px;margin-bottom:2rem;" class="fu d2">${copy.hero_sub}</p>
         <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;" class="fu d3">
-          <a href="#contact" style="background:${p};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Book Appointment</a>
+          <a href="https://www.gethellosite.com/#hero-form" style="background:${p};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">See my site →</a>
           ${phone?`<a href="tel:${cleanPhone(phone)}" style="border:1px solid rgba(255,255,255,.3);color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">${phone}</a>`:''}
         </div>
       </div>
@@ -617,6 +623,15 @@ app.get('/demo', async (req, res) => {
 
     if (industry === 'unsupported') {
       return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
+    }
+
+    // Review count filter: only generate demos for businesses with 10-200 reviews
+    const reviewCount = place.userRatingCount || 0;
+    if (reviewCount < 10 || reviewCount > 200) {
+      const msg = reviewCount < 10
+        ? 'This business needs at least 10 Google reviews before we can build a great demo.'
+        : 'This business has over 200 reviews and may need a custom approach.';
+      return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Not Quite Ready</h1><p style="opacity:.6;max-width:400px;margin:0 auto 1.5rem;line-height:1.7;">${msg}</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
     }
 
     const allPhotoUrls = (place.photos||[]).slice(0,8).map(p=>getPhotoUrl(p.name,1400));

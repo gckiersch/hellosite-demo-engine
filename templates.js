@@ -152,7 +152,7 @@ img{display:block;}
     <nav style="display:flex;gap:24px;align-items:center;" class="desk-only">
       <a href="#services" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Services</a>
       <a href="#reviews" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Reviews</a>
-      <a href="#contact" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Location</a>
+      <a href="https://www.gethellosite.com/#hero-form" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Location</a>
       <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">Call Now</a>
     </nav>
   </div>
@@ -307,7 +307,7 @@ function templateWellness(place, copy, photos) {
     </div>
     <div style="display:flex;align-items:center;gap:20px;">
       <span style="font-size:14px;color:${MUTED};" class="mob-hide">${esc(phone)}</span>
-      <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;">Book Now</a>
+      <a href="https://www.gethellosite.com/#hero-form" style="background:${ACCENT};color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;">See my site</a>
     </div>
   </div>
   <div style="position:relative;min-height:540px;display:flex;align-items:flex-end;overflow:hidden;">
@@ -374,7 +374,7 @@ function templatePet(place, copy, photos) {
       <div style="font-size:21px;font-weight:800;">${esc(name)}</div>
       <div style="font-size:12px;color:${MUTED};margin-top:2px;">${esc(copy.tagline||'')}</div>
     </div>
-    <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">Book a Groom</a>
+    <a href="https://www.gethellosite.com/#hero-form" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">See my site</a>
   </div>
 
   <div style="padding:52px 32px 42px;max-width:860px;margin:0 auto;" class="mob-pad">
@@ -456,7 +456,7 @@ function templateRetail(place, copy, photos) {
     </div>
     <div style="display:flex;gap:24px;align-items:center;" class="mob-hide">
       <a href="#services" style="font-size:13px;color:${MUTED};">Collections</a>
-      <a href="#contact" style="font-size:13px;color:${MUTED};">Visit Us</a>
+      <a href="https://www.gethellosite.com/#hero-form" style="font-size:13px;color:${MUTED};">Visit Us</a>
     </div>
   </div>
 
