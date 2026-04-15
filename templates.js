@@ -152,7 +152,8 @@ img{display:block;}
     <nav style="display:flex;gap:24px;align-items:center;" class="desk-only">
       <a href="#services" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Services</a>
       <a href="#reviews" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Reviews</a>
-      <a href="https://www.gethellosite.com/#hero-form" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Location</a>
+      <a href="https://www.gethellosite.com/#demo" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Location</a>
+      <a href="https://www.gethellosite.com/#demo" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">See my site</a>
       <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">Call Now</a>
     </nav>
   </div>
@@ -161,7 +162,7 @@ img{display:block;}
     <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(48px,8vw,88px);font-weight:800;line-height:.93;color:#fff;margin-bottom:16px;" class="fu d1 hero-h1">${headline(copy.hero_headline,'#7EB3FF')}</h1>
     <p style="font-size:17px;color:rgba(255,255,255,.65);line-height:1.7;max-width:500px;margin-bottom:28px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;" class="fu d3">
-      <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:14px 28px;border-radius:5px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 4px 20px rgba(0,0,0,.25);display:inline-flex;align-items:center;gap:8px;">📞 Call Now — ${esc(phone)}</a>
+      <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:14px 28px;border-radius:5px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 4px 20px rgba(0,0,0,.25);display:inline-flex;align-items:center;gap:8px;">📞 Call Now - ${esc(phone)}</a>
       <a href="#services" style="background:rgba(255,255,255,.12);backdrop-filter:blur(8px);color:#fff;padding:14px 24px;border-radius:5px;border:1px solid rgba(255,255,255,.25);font-size:15px;">See Our Services</a>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:20px;align-items:center;" class="fu d4">${['✓ Licensed','✓ Insured','✓ Free Estimates','✓ Same-Day Available'].map((b,i)=>`${i>0?'<span style="color:rgba(255,255,255,.2);">·</span>':''}<span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.5);">${b}</span>`).join('')}</div>
@@ -183,7 +184,7 @@ img{display:block;}
   <div style="max-width:700px;margin:0 auto;text-align:center;">
     <div style="font-size:52px;color:rgba(255,255,255,.2);line-height:1;font-family:Georgia,serif;margin-bottom:2px;">"</div>
     <p style="font-family:'Barlow',sans-serif;font-size:clamp(17px,2.5vw,22px);font-weight:500;color:#fff;line-height:1.7;font-style:italic;margin-bottom:18px;">${esc(review.text)}</p>
-    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;"><span style="color:rgba(255,255,255,.85);font-size:14px;letter-spacing:2px;">${stars(review.rating)}</span><span style="font-size:13px;color:rgba(255,255,255,.7);font-weight:500;">— ${esc(review.author)}</span></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;"><span style="color:rgba(255,255,255,.85);font-size:14px;letter-spacing:2px;">${stars(review.rating)}</span><span style="font-size:13px;color:rgba(255,255,255,.7);font-weight:500;">- ${esc(review.author)}</span></div>
     <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:7px 16px;border-radius:100px;"><span style="color:#FFD700;font-size:13px;">${stars(rating)}</span><span style="font-size:13px;color:#fff;font-weight:600;">${rating} · ${reviewCount} Google Reviews</span></div>
   </div>
 </section>
@@ -268,7 +269,7 @@ function templateGrooming(place, copy, photos) {
   <div style="padding:60px 36px;max-width:580px;margin:0 auto;text-align:center;" class="mob-pad">
     <div style="width:36px;height:1px;background:${ACCENT};margin:0 auto 28px;opacity:.3;"></div>
     <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3vw,24px);font-style:italic;line-height:1.7;margin-bottom:18px;">"${esc(review.text)}"</p>
-    <p style="font-size:10px;color:${MUTED};letter-spacing:.2em;text-transform:uppercase;">— ${esc(review.author)}</p>
+    <p style="font-size:10px;color:${MUTED};letter-spacing:.2em;text-transform:uppercase;">- ${esc(review.author)}</p>
     <div style="width:36px;height:1px;background:${ACCENT};margin:28px auto 0;opacity:.3;"></div>
   </div>
 
@@ -307,7 +308,7 @@ function templateWellness(place, copy, photos) {
     </div>
     <div style="display:flex;align-items:center;gap:20px;">
       <span style="font-size:14px;color:${MUTED};" class="mob-hide">${esc(phone)}</span>
-      <a href="https://www.gethellosite.com/#hero-form" style="background:${ACCENT};color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;">See my site</a>
+      <a href="https://www.gethellosite.com/#demo" style="background:${ACCENT};color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;">See my site</a>
     </div>
   </div>
   <div style="position:relative;min-height:540px;display:flex;align-items:flex-end;overflow:hidden;">
@@ -334,7 +335,7 @@ function templateWellness(place, copy, photos) {
   <div style="padding:60px 36px;max-width:640px;margin:0 auto;" class="mob-pad">
     <div style="border-left:3px solid ${ACCENT};padding-left:28px;">
       <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3vw,24px);font-style:italic;line-height:1.75;color:${TEXT};margin-bottom:14px;">"${esc(review.text)}"</p>
-      <p style="font-size:12px;color:${MUTED};letter-spacing:.06em;">— ${esc(review.author)}</p>
+      <p style="font-size:12px;color:${MUTED};letter-spacing:.06em;">- ${esc(review.author)}</p>
     </div>
   </div>
   ${galleryStrip(photos.gallery,BORDER)}
@@ -374,7 +375,7 @@ function templatePet(place, copy, photos) {
       <div style="font-size:21px;font-weight:800;">${esc(name)}</div>
       <div style="font-size:12px;color:${MUTED};margin-top:2px;">${esc(copy.tagline||'')}</div>
     </div>
-    <a href="https://www.gethellosite.com/#hero-form" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">See my site</a>
+    <a href="https://www.gethellosite.com/#demo" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">See my site</a>
   </div>
 
   <div style="padding:52px 32px 42px;max-width:860px;margin:0 auto;" class="mob-pad">
@@ -408,7 +409,7 @@ function templatePet(place, copy, photos) {
   <div style="padding:52px 32px;max-width:620px;margin:0 auto;text-align:center;" class="mob-pad">
     <div style="font-size:40px;color:${ACCENT};line-height:1;margin-bottom:10px;">🐾</div>
     <p style="font-size:clamp(15px,2.5vw,19px);line-height:1.75;margin-bottom:14px;font-style:italic;">"${esc(review.text)}"</p>
-    <p style="font-size:12px;color:${MUTED};font-weight:600;">— ${esc(review.author)}</p>
+    <p style="font-size:12px;color:${MUTED};font-weight:600;">- ${esc(review.author)}</p>
   </div>
 
   ${galleryStrip(photos.gallery,BORDER)}
@@ -456,7 +457,7 @@ function templateRetail(place, copy, photos) {
     </div>
     <div style="display:flex;gap:24px;align-items:center;" class="mob-hide">
       <a href="#services" style="font-size:13px;color:${MUTED};">Collections</a>
-      <a href="https://www.gethellosite.com/#hero-form" style="font-size:13px;color:${MUTED};">Visit Us</a>
+      <a href="https://www.gethellosite.com/#demo" style="font-size:13px;color:${MUTED};">Visit Us</a>
     </div>
   </div>
 
@@ -470,7 +471,7 @@ function templateRetail(place, copy, photos) {
     </h1>
     <p style="font-size:16px;color:${MUTED};max-width:460px;line-height:1.8;margin-bottom:36px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
     <div style="display:flex;gap:12px;" class="fu d3">
-      <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:13px 26px;border-radius:4px;font-size:13px;font-weight:600;letter-spacing:.04em;">Call Us — ${esc(phone)}</a>
+      <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:13px 26px;border-radius:4px;font-size:13px;font-weight:600;letter-spacing:.04em;">Call Us - ${esc(phone)}</a>
       <a href="https://maps.google.com/?q=${encodeURIComponent(address)}" target="_blank" style="background:transparent;border:1px solid ${BORDER};color:${MUTED};padding:13px 20px;border-radius:4px;font-size:13px;">Get Directions</a>
     </div>
   </div>
@@ -494,7 +495,7 @@ function templateRetail(place, copy, photos) {
   <div style="padding:56px 36px;max-width:640px;margin:0 auto;text-align:center;" class="mob-pad">
     <div style="width:48px;height:2px;background:${ACCENT};margin:0 auto 24px;"></div>
     <p style="font-family:'Playfair Display',serif;font-size:clamp(17px,3vw,22px);font-style:italic;line-height:1.75;margin-bottom:14px;">"${esc(review.text)}"</p>
-    <p style="font-size:12px;color:${MUTED};">— ${esc(review.author)}</p>
+    <p style="font-size:12px;color:${MUTED};">- ${esc(review.author)}</p>
     <div style="width:48px;height:2px;background:${ACCENT};margin:24px auto 0;"></div>
   </div>
 
@@ -559,7 +560,7 @@ function templateRealEstate(place, copy, photos) {
   <div style="padding:56px 36px;max-width:640px;margin:0 auto;" class="mob-pad">
     <div style="border-left:3px solid rgba(27,58,107,.25);padding-left:28px;">
       <p style="font-family:'Libre Baskerville',serif;font-size:clamp(17px,2.8vw,21px);font-style:italic;line-height:1.75;color:${TEXT};margin-bottom:14px;">"${esc(review.text)}"</p>
-      <p style="font-size:11px;color:${MUTED};letter-spacing:.08em;text-transform:uppercase;">— ${esc(review.author)}</p>
+      <p style="font-size:11px;color:${MUTED};letter-spacing:.08em;text-transform:uppercase;">- ${esc(review.author)}</p>
     </div>
   </div>
   ${galleryStrip(photos.gallery,BORDER)}
