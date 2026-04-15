@@ -264,13 +264,16 @@ function templateGrooming(place, copy, photos) {
   ${photos.hero?`<div style="height:360px;overflow:hidden;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};"><img src="${photos.hero}" style="width:100%;height:100%;object-fit:cover;object-position:center top;" loading="lazy"/></div>`:''}
 
   <div style="background:${SURFACE};padding:48px 36px;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
-    <div style="max-width:540px;margin:0 auto;">
+    <div style="max-width:860px;margin:0 auto;">
       <h2 style="font-family:'Cormorant Garamond',serif;font-size:11px;font-weight:600;color:${MUTED};letter-spacing:.3em;text-transform:uppercase;text-align:center;margin-bottom:32px;">${esc(copy.services_label||'THE MENU')}</h2>
-      ${services.map((s,i)=>`
-      <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid ${BORDER};padding:14px 0;">
-        <span style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;">${esc(s)}</span>
-        ${copy.service_descs?.[i]?`<span style="font-size:12px;color:${MUTED};font-family:'Outfit',sans-serif;font-weight:300;">${esc(copy.service_descs[i])}</span>`:''}
-      </div>`).join('')}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" class="g3">
+        ${services.map((s,i)=>`
+        <div style="background:${BG};border:1px solid ${BORDER};border-radius:10px;padding:20px 18px;">
+          <div style="width:28px;height:2px;background:${ACCENT};margin-bottom:10px;"></div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700;margin-bottom:4px;">${esc(s)}</div>
+          ${copy.service_descs?.[i]?`<div style="font-size:12px;color:${MUTED};line-height:1.6;">${esc(copy.service_descs[i])}</div>`:''}
+        </div>`).join('')}
+      </div>
     </div>
   </div>
 
