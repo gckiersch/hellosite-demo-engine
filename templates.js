@@ -71,6 +71,7 @@ img{display:block;}
   .g3{grid-template-columns:1fr 1fr!important;}
   .gfooter{grid-template-columns:1fr!important;}
   .mob-pad{padding:36px 20px!important;}
+  .hero-pad{padding-top:48px!important;}
 }
 @media(max-width:480px){h1{font-size:2.4rem!important;}}
 ${extraCSS||''}
@@ -133,6 +134,9 @@ img{display:block;}
   .desk-only{display:none!important;}
   .hero-h1{font-size:clamp(36px,10vw,52px)!important;}
   .sec{padding:36px 20px!important;width:100%!important;}
+  .hero-sub{max-width:100%!important;}
+  .hero-ctas{flex-direction:column!important;gap:10px!important;}
+  .hero-ctas a{text-align:center;width:100%;}
   .svc-grid{grid-template-columns:1fr 1fr!important;}
   .ft-grid{grid-template-columns:1fr!important;gap:24px!important;}
   .stats-grid{grid-template-columns:1fr 1fr!important;}
@@ -161,11 +165,11 @@ img{display:block;}
       <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">Call Now</a>
     </nav>
   </div>
-  <div style="position:relative;z-index:2;padding:0 36px 52px;max-width:960px;width:60%;" class="sec">
+  <div style="position:relative;z-index:2;padding:0 48px 52px;max-width:100%;" class="sec">
     <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);padding:6px 14px;border-radius:100px;margin-bottom:20px;" class="fu"><span style="color:#FFD700;font-size:14px;letter-spacing:2px;">${stars(rating)}</span><span style="font-size:13px;font-weight:600;color:#fff;">${rating}</span><span style="font-size:12px;color:rgba(255,255,255,.55);">&nbsp;·&nbsp;${reviewCount} Google reviews</span></div>
     <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(48px,10vw,110px);font-weight:800;line-height:.93;color:#fff;margin-bottom:16px;" class="fu d1 hero-h1">${headline(copy.hero_headline,'#7EB3FF')}</h1>
-    <p style="font-size:17px;color:rgba(255,255,255,.65);line-height:1.7;max-width:500px;margin-bottom:28px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;" class="fu d3">
+    <p style="font-size:17px;color:rgba(255,255,255,.65);line-height:1.7;max-width:500px;margin-bottom:28px;" class="fu d2 hero-sub">${esc(copy.hero_sub||'')}</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;" class="fu d3 hero-ctas">
       <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:14px 28px;border-radius:5px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 4px 20px rgba(0,0,0,.25);display:inline-flex;align-items:center;gap:8px;">📞 Call Now - ${esc(phone)}</a>
       <a href="#services" style="background:transparent;color:#fff;padding:14px 24px;border-radius:5px;border:2px solid rgba(255,255,255,.45);font-size:15px;font-weight:600;">See Our Services</a>
     </div>
@@ -244,7 +248,7 @@ function templateGrooming(place, copy, photos) {
     </div>
   </div>
 
-  <div style="padding:44px 36px 52px;max-width:660px;margin:0 auto;text-align:center;" class="mob-pad">
+  <div style="padding:44px 36px 52px;max-width:660px;margin:0 auto;text-align:center;" class="mob-pad hero-pad">
     <span style="color:${ACCENT};font-size:17px;letter-spacing:2px;" class="fu">${stars(rating)}</span>
     <p style="font-size:10px;color:${MUTED};letter-spacing:.2em;text-transform:uppercase;margin-top:8px;margin-bottom:32px;" class="fu">${rating} Stars · ${reviewCount} Reviews</p>
     <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.0;margin-bottom:22px;" class="fu d1">
@@ -382,7 +386,7 @@ function templatePet(place, copy, photos) {
     <a href="https://www.gethellosite.com/#demo" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">See my site</a>
   </div>
 
-  <div style="padding:52px 32px 42px;max-width:860px;margin:0 auto;" class="mob-pad">
+  <div style="padding:52px 32px 42px;max-width:860px;margin:0 auto;" class="mob-pad hero-pad">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;" class="fu">
       <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
       <span style="font-size:13px;color:${MUTED};font-weight:600;">${rating} stars · ${reviewCount} happy pet parents</span>
@@ -465,7 +469,7 @@ function templateRetail(place, copy, photos) {
     </div>
   </div>
 
-  <div style="padding:58px 36px 46px;max-width:860px;margin:0 auto;" class="mob-pad">
+  <div style="padding:58px 36px 46px;max-width:860px;margin:0 auto;" class="mob-pad hero-pad">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;" class="fu">
       <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
       <span style="font-size:13px;color:${MUTED};">${rating} · ${reviewCount} reviews</span>
@@ -536,7 +540,7 @@ function templateRealEstate(place, copy, photos) {
     <div><div style="font-family:'Libre Baskerville',serif;font-size:21px;font-weight:700;color:${TEXT};">${esc(name)}</div><div style="font-size:10px;color:${MUTED};letter-spacing:.1em;margin-top:3px;text-transform:uppercase;">${esc(copy.tagline||'')}</div></div>
     <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;">Schedule a Call</a>
   </div>
-  <div style="padding:62px 36px 50px;max-width:960px;margin:0 auto;" class="mob-pad">
+  <div style="padding:62px 36px 50px;max-width:960px;margin:0 auto;" class="mob-pad hero-pad">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;" class="fu"><span style="color:#F59E0B;font-size:16px;">${stars(rating)}</span><span style="font-size:13px;color:${MUTED};">${rating} · ${reviewCount} client reviews</span></div>
     <h1 style="font-family:'Libre Baskerville',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.1;color:${TEXT};margin-bottom:20px;" class="fu d1">${headline(copy.hero_headline,ACCENT)}</h1>
     <div style="width:56px;height:3px;background:${ACCENT};margin-bottom:22px;opacity:.4;" class="fu d2"></div>
