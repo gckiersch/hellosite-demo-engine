@@ -146,7 +146,7 @@ img{display:block;}
   <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#fff;letter-spacing:.08em;text-transform:uppercase;" class="desk-only"><span style="width:6px;height:6px;background:#fff;border-radius:50%;display:inline-block;margin-right:7px;animation:pulse 2s infinite;"></span>Same-Day Service &nbsp;·&nbsp; Free Estimates &nbsp;·&nbsp; Licensed &amp; Insured</span>
   <a href="tel:${cp}" style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#fff;letter-spacing:.04em;white-space:nowrap;">📞 ${esc(phone)}</a>
 </div>
-<section style="position:relative;min-height:92vh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;">
+<section style="position:relative;min-height:auto;display:flex;flex-direction:column;justify-content:flex-end;">
   ${photos.hero?`<div style="position:absolute;inset:0;background:url('${photos.hero}') center/cover no-repeat;"></div>`:`<div style="position:absolute;inset:0;background:linear-gradient(135deg,${ACCENT},#0a1f3d);"></div>`}
   <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(5,5,8,.95) 0%,rgba(5,5,8,.68) 38%,rgba(5,5,8,.18) 68%,rgba(5,5,8,.02) 100%);"></div>
   <div style="position:absolute;top:0;left:0;right:0;z-index:10;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;">
@@ -313,7 +313,7 @@ function templateWellness(place, copy, photos) {
       <a href="https://www.gethellosite.com/#demo" style="background:${ACCENT};color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;">See my site</a>
     </div>
   </div>
-  <div style="position:relative;min-height:540px;display:flex;align-items:flex-end;overflow:hidden;">
+  <div style="position:relative;min-height:540px;display:flex;align-items:flex-end;">
     ${photos.hero?`<img src="${photos.hero}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy"/><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(20,28,16,.85) 0%,rgba(20,28,16,.35) 50%,transparent 100%);"></div>`:`<div style="position:absolute;inset:0;background:linear-gradient(135deg,${ACCENT},#4a5c3a);"></div><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(20,28,16,.7) 0%,transparent 60%);"></div>`}
     <div style="position:relative;z-index:2;padding:0 36px 52px;max-width:720px;" class="mob-pad">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;" class="fu"><span style="color:#FFD700;font-size:16px;">${stars(rating)}</span><span style="color:rgba(255,255,255,.7);font-size:13px;">${rating} · ${reviewCount} reviews</span></div>

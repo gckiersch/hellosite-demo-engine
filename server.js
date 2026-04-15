@@ -478,7 +478,7 @@ function layoutFullBleed(place, copy, photos, industry) {
 
   return baseHTML(name, theme, `
     ${navHTML(shortName, copy, theme, ['Services','Gallery','Reviews','Call Us'])}
-    <section style="min-height:100vh;position:relative;display:flex;align-items:center;overflow:hidden;">
+    <section style="min-height:auto;position:relative;display:flex;align-items:center;">
       ${photos.hero?`<div style="position:absolute;inset:0;background:url('${photos.hero}') center/cover no-repeat;"></div>`:''}
       <div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(5,5,5,.97) 42%,rgba(5,5,5,.5) 75%,rgba(5,5,5,.2) 100%);"></div>
       <div style="position:relative;z-index:2;padding:9rem 5rem 6rem;max-width:720px;" class="mob-pad fu">
@@ -533,7 +533,7 @@ function layoutSplit(place, copy, photos, industry) {
 
   return baseHTML(name, theme, `
     ${navHTML(shortName, copy, theme, navLinks)}
-    <section style="min-height:100vh;display:grid;grid-template-columns:1fr 1fr;" class="mob-stack">
+    <section style="min-height:auto;display:grid;grid-template-columns:1fr 1fr;" class="mob-stack">
       <div style="display:flex;flex-direction:column;justify-content:center;padding:9rem 4rem 5rem 5rem;background:${panelBg};position:relative;z-index:2;" class="mob-pad">
         <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:${a};margin-bottom:1.25rem;" class="fu">${copy.tagline}</p>
         <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,7vw,4.2rem);line-height:.88;letter-spacing:.02em;margin-bottom:1.5rem;color:${textColor};" class="fu d1">${formatHeadline(copy.hero_headline, a)}</h1>
@@ -577,7 +577,7 @@ function layoutWellness(place, copy, photos, industry) {
     ${navHTML(shortName, copy, theme, ['Services','Gallery','Reviews','Book'])}
 
     <!-- WELLNESS HERO — full bleed, text overlaid at bottom -->
-    <section style="min-height:100vh;position:relative;display:flex;align-items:flex-end;overflow:hidden;">
+    <section style="min-height:auto;position:relative;display:flex;align-items:flex-end;">
       ${photos.hero
         ? `<div style="position:absolute;inset:0;background:url('${photos.hero}') center/cover no-repeat;"></div>`
         : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,${p},${a});"></div>`
@@ -822,14 +822,14 @@ app.get('/demo', async (req, res) => {
         console.log(`✓ ${place.displayName?.text} → ${industry}`);
 
         if (industry === 'unsupported') {
-          demoCache.set(cacheKey, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
+          demoCache.set(cacheKey, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:auto;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
           demoProgress.delete(cacheKey);
           return;
         }
 
         const reviewCount = place.userRatingCount || 0;
         if (reviewCount < 10) {
-          demoCache.set(cacheKey, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Not Quite Ready</h1><p style="opacity:.6;max-width:400px;margin:0 auto 1.5rem;line-height:1.7;">This business needs at least 10 Google reviews before we can build a great demo.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
+          demoCache.set(cacheKey, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:auto;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Not Quite Ready</h1><p style="opacity:.6;max-width:400px;margin:0 auto 1.5rem;line-height:1.7;">This business needs at least 10 Google reviews before we can build a great demo.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
           demoProgress.delete(cacheKey);
           return;
         }
