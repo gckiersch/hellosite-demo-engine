@@ -131,12 +131,14 @@ img{display:block;}
 .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}
 @media(max-width:680px){
   .desk-only{display:none!important;}
-  .hero-h1{font-size:clamp(2.4rem,7vw,4.2rem)!important;}
-  .sec{padding:36px 20px!important;}
+  .hero-h1{font-size:clamp(36px,10vw,52px)!important;}
+  .sec{padding:36px 20px!important;width:100%!important;}
   .svc-grid{grid-template-columns:1fr 1fr!important;}
   .ft-grid{grid-template-columns:1fr!important;gap:24px!important;}
   .stats-grid{grid-template-columns:1fr 1fr!important;}
   .mob-hide{display:none!important;}
+  .trust-row{display:grid!important;grid-template-columns:1fr 1fr;gap:4px 12px;justify-items:start;}
+  .trust-dot{display:none!important;}
 }
 @media(max-width:480px){.hero-h1{font-size:2.4rem!important;}}
 </style>
@@ -159,15 +161,15 @@ img{display:block;}
       <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">Call Now</a>
     </nav>
   </div>
-  <div style="position:relative;z-index:2;padding:0 36px 52px;max-width:800px;" class="sec">
+  <div style="position:relative;z-index:2;padding:0 36px 52px;max-width:960px;width:60%;" class="sec">
     <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);padding:6px 14px;border-radius:100px;margin-bottom:20px;" class="fu"><span style="color:#FFD700;font-size:14px;letter-spacing:2px;">${stars(rating)}</span><span style="font-size:13px;font-weight:600;color:#fff;">${rating}</span><span style="font-size:12px;color:rgba(255,255,255,.55);">&nbsp;·&nbsp;${reviewCount} Google reviews</span></div>
-    <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:800;line-height:.93;color:#fff;margin-bottom:16px;" class="fu d1 hero-h1">${headline(copy.hero_headline,'#7EB3FF')}</h1>
+    <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(48px,10vw,110px);font-weight:800;line-height:.93;color:#fff;margin-bottom:16px;" class="fu d1 hero-h1">${headline(copy.hero_headline,'#7EB3FF')}</h1>
     <p style="font-size:17px;color:rgba(255,255,255,.65);line-height:1.7;max-width:500px;margin-bottom:28px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;" class="fu d3">
       <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:14px 28px;border-radius:5px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 4px 20px rgba(0,0,0,.25);display:inline-flex;align-items:center;gap:8px;">📞 Call Now - ${esc(phone)}</a>
-      <a href="#services" style="background:rgba(255,255,255,.12);backdrop-filter:blur(8px);color:#fff;padding:14px 24px;border-radius:5px;border:1px solid rgba(255,255,255,.25);font-size:15px;">See Our Services</a>
+      <a href="#services" style="background:transparent;color:#fff;padding:14px 24px;border-radius:5px;border:2px solid rgba(255,255,255,.45);font-size:15px;font-weight:600;">See Our Services</a>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:20px;align-items:center;" class="fu d4">${['✓ Licensed','✓ Insured','✓ Free Estimates','✓ Same-Day Available'].map((b,i)=>`${i>0?'<span style="color:rgba(255,255,255,.2);">·</span>':''}<span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.5);">${b}</span>`).join('')}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:20px;align-items:center;" class="fu d4 trust-row">${['✓ Licensed','✓ Insured','✓ Free Estimates','✓ Same-Day Available'].map((b,i)=>`${i>0?'<span class="trust-dot" style="color:rgba(255,255,255,.2);">·</span>':''}<span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.5);">${b}</span>`).join('')}</div>
   </div>
 </section>
 <div style="background:${SURFACE};border-bottom:1px solid ${BORDER};">
@@ -444,7 +446,7 @@ function templateRetail(place, copy, photos) {
 
   return wrapHTML(name,
     'family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Jost:wght@400;500;600',
-    `body{background:${BG};color:${TEXT};font-family:'Jost',sans-serif;}`,
+    `body{background:${BG};color:${TEXT};font-family:'Jost',sans-serif;}@media(max-width:768px){.retail-hero-h1{line-height:1.25!important;}}`,
     `
   <div style="background:${ACCENT};padding:9px 24px;text-align:center;">
     <span style="font-size:12px;font-weight:500;color:#fff;letter-spacing:.12em;text-transform:uppercase;">
@@ -468,7 +470,7 @@ function templateRetail(place, copy, photos) {
       <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
       <span style="font-size:13px;color:${MUTED};">${rating} · ${reviewCount} reviews</span>
     </div>
-    <h1 style="font-family:'Playfair Display',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:800;line-height:1.08;margin-bottom:20px;" class="fu d1">
+    <h1 style="font-family:'Playfair Display',serif;font-size:clamp(42px,6.5vw,72px);font-weight:800;line-height:1.08;margin-bottom:20px;" class="fu d1 retail-hero-h1">
       ${headline(copy.hero_headline,ACCENT)}
     </h1>
     <p style="font-size:16px;color:${MUTED};max-width:460px;line-height:1.8;margin-bottom:36px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
