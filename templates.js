@@ -152,7 +152,7 @@ img{display:block;}
   <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#fff;letter-spacing:.08em;text-transform:uppercase;" class="desk-only"><span style="width:6px;height:6px;background:#fff;border-radius:50%;display:inline-block;margin-right:7px;animation:pulse 2s infinite;"></span>Same-Day Service &nbsp;·&nbsp; Free Estimates &nbsp;·&nbsp; Licensed &amp; Insured</span>
   <a href="tel:${cp}" style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#fff;letter-spacing:.04em;white-space:nowrap;">📞 ${esc(phone)}</a>
 </div>
-<section style="position:relative;min-height:auto;display:flex;flex-direction:column;justify-content:flex-end;">
+<section style="position:relative;min-height:92vh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;">
   ${photos.hero?`<div style="position:absolute;inset:0;background:url('${photos.hero}') center/cover no-repeat;"></div>`:`<div style="position:absolute;inset:0;background:linear-gradient(135deg,${ACCENT},#0a1f3d);"></div>`}
   <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(5,5,8,.95) 0%,rgba(5,5,8,.68) 38%,rgba(5,5,8,.18) 68%,rgba(5,5,8,.02) 100%);"></div>
   <div style="position:absolute;top:0;left:0;right:0;z-index:10;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;">
@@ -165,7 +165,7 @@ img{display:block;}
       <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">Call Now</a>
     </nav>
   </div>
-  <div style="position:relative;z-index:2;padding:0 48px 52px;max-width:100%;" class="sec">
+  <div style="position:relative;z-index:2;padding:72px 48px 52px;max-width:100%;" class="sec">
     <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);padding:6px 14px;border-radius:100px;margin-bottom:20px;" class="fu"><span style="color:#FFD700;font-size:14px;letter-spacing:2px;">${stars(rating)}</span><span style="font-size:13px;font-weight:600;color:#fff;">${rating}</span><span style="font-size:12px;color:rgba(255,255,255,.55);">&nbsp;·&nbsp;${reviewCount} Google reviews</span></div>
     <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(48px,10vw,110px);font-weight:800;line-height:.93;color:#fff;margin-bottom:16px;" class="fu d1 hero-h1">${headline(copy.hero_headline,'#7EB3FF')}</h1>
     <p style="font-size:17px;color:rgba(255,255,255,.65);line-height:1.7;max-width:500px;margin-bottom:28px;" class="fu d2 hero-sub">${esc(copy.hero_sub||'')}</p>
