@@ -13,7 +13,9 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
-const demoCache = new Map();
+const demoCache    = new Map(); // cacheKey -> html
+const demoProgress = new Map(); // cacheKey -> true (building)
+const demoErrors   = new Map(); // cacheKey -> error string
 
 // ─── HERO PHOTO OVERRIDES ────────────────────────────────────────────────────
 // Hardcoded clean hero photos for specific businesses
@@ -624,6 +626,151 @@ function renderDemo(place, copy, photos, industry, layoutOverride) {
   }
 }
 
+// ─── LOADING PAGE ────────────────────────────────────────────────────────────
+function loadingPage(place_id, layout) {
+  const pid = JSON.stringify(place_id);
+  const lay = JSON.stringify(layout || '');
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Building your HelloSite…</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: #17324D;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #fff;
+      gap: 0;
+    }
+    .wordmark {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 3.5rem;
+      opacity: 0.95;
+    }
+    .wordmark em { font-style: normal; color: rgba(255,247,232,0.85); }
+    .bar-track {
+      width: 200px;
+      height: 3px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 100px;
+      overflow: hidden;
+      margin-bottom: 3rem;
+    }
+    .bar-fill {
+      height: 100%;
+      width: 40%;
+      background: rgba(255,255,255,0.75);
+      border-radius: 100px;
+      animation: sweep 1.8s ease-in-out infinite;
+    }
+    @keyframes sweep {
+      0%   { transform: translateX(-120%); }
+      60%  { transform: translateX(280%); }
+      100% { transform: translateX(280%); }
+    }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      margin-bottom: 0.65rem;
+      text-align: center;
+    }
+    .sub {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.45);
+      max-width: 320px;
+      text-align: center;
+      line-height: 1.65;
+    }
+    .error-box {
+      display: none;
+      margin-top: 2.25rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 1.4rem 1.75rem;
+      max-width: 320px;
+      text-align: center;
+    }
+    .error-box p {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.9rem;
+      line-height: 1.65;
+    }
+    .error-box a {
+      display: inline-block;
+      margin-top: 0.9rem;
+      color: rgba(255,255,255,0.85);
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.35);
+      padding-bottom: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wordmark">Hello<em>Site</em></div>
+  <div class="bar-track"><div class="bar-fill"></div></div>
+  <h1>Building your site&hellip;</h1>
+  <p class="sub">Pulling your reviews, photos, and business info from Google</p>
+  <div class="error-box" id="errBox">
+    <p>This is taking longer than expected. Please try refreshing, or come back in a moment.</p>
+    <a href="javascript:location.reload()">Refresh &rarr;</a>
+  </div>
+  <script>
+    var placeId  = ${pid};
+    var layout   = ${lay};
+    var started  = Date.now();
+    var TIMEOUT  = 30000;
+    function poll() {
+      var qs = '?place_id=' + encodeURIComponent(placeId);
+      if (layout) qs += '&layout=' + encodeURIComponent(layout);
+      fetch('/demo-status' + qs)
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d.ready) { location.reload(); return; }
+          if (d.error || Date.now() - started > TIMEOUT) {
+            document.querySelector('.bar-fill').style.animationPlayState = 'paused';
+            document.querySelector('.bar-fill').style.opacity = '0.3';
+            document.getElementById('errBox').style.display = 'block';
+            return;
+          }
+          setTimeout(poll, 2000);
+        })
+        .catch(function(){
+          if (Date.now() - started > TIMEOUT) {
+            document.getElementById('errBox').style.display = 'block';
+            return;
+          }
+          setTimeout(poll, 2000);
+        });
+    }
+    setTimeout(poll, 2000);
+  </script>
+</body>
+</html>`;
+}
+
+// ─── DEMO STATUS ─────────────────────────────────────────────────────────────
+app.get('/demo-status', (req, res) => {
+  const { place_id, layout } = req.query;
+  if (!place_id) return res.json({ ready: false });
+  const cacheKey = `${place_id}:${layout||'default'}`;
+  if (demoCache.has(cacheKey))  return res.json({ ready: true });
+  if (demoErrors.has(cacheKey)) return res.json({ ready: false, error: true });
+  return res.json({ ready: false });
+});
+
 // ─── MAIN ROUTE ──────────────────────────────────────────────────────────────
 app.get('/demo', async (req, res) => {
   const { place_id, refresh, layout, booking_url } = req.query;
@@ -631,46 +778,65 @@ app.get('/demo', async (req, res) => {
 
   const cacheKey = `${place_id}:${layout||'default'}`;
 
+  // Cache hit — serve immediately, skip loading page
   if (demoCache.has(cacheKey) && refresh !== 'true') {
     console.log(`⚡ Cache hit: ${cacheKey}`);
     res.setHeader('Content-Type', 'text/html');
     return res.send(demoCache.get(cacheKey));
   }
 
-  try {
-    console.log(`\n━━━ ${place_id}`);
-    const place = await getPlaceDetails(place_id);
-    const industry = detectIndustry(place);
-    console.log(`✓ ${place.displayName?.text} → ${industry}`);
-
-    if (industry === 'unsupported') {
-      return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
-    }
-
-    // Review count filter: only generate demos for businesses with at least 10 reviews
-    const reviewCount = place.userRatingCount || 0;
-    if (reviewCount < 10) {
-      return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Not Quite Ready</h1><p style="opacity:.6;max-width:400px;margin:0 auto 1.5rem;line-height:1.7;">This business needs at least 10 Google reviews before we can build a great demo.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
-    }
-
-    const allPhotoUrls = (place.photos||[]).slice(0,8).map(p=>getPhotoUrl(p.name,1400));
-    const [photos, copy] = await Promise.all([
-      classifyPhotosWithOverride(allPhotoUrls, industry, place_id),
-      generateCopy(place, industry)
-    ]);
-
-    if (booking_url) copy.booking_url = booking_url;
-    const html = renderDemo(place, copy, photos, industry, layout);
-    demoCache.set(cacheKey, html);
-    console.log(`✓ Done — ${industry} / ${layout||defaultLayouts[industry]}`);
-
-    res.setHeader('Content-Type', 'text/html');
-    res.send(html);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).send(`<pre style="padding:2rem;font-family:monospace;">Error: ${err.message}\n\n${err.stack}</pre>`);
+  // On explicit refresh, clear stale error so we retry
+  if (refresh === 'true') {
+    demoErrors.delete(cacheKey);
+    demoCache.delete(cacheKey);
   }
+
+  // Kick off background generation only if not already in flight
+  if (!demoProgress.has(cacheKey)) {
+    demoProgress.set(cacheKey, true);
+    (async () => {
+      try {
+        console.log(`\n━━━ ${place_id}`);
+        const place = await getPlaceDetails(place_id);
+        const industry = detectIndustry(place);
+        console.log(`✓ ${place.displayName?.text} → ${industry}`);
+
+        if (industry === 'unsupported') {
+          demoCache.set(cacheKey, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
+          demoProgress.delete(cacheKey);
+          return;
+        }
+
+        const reviewCount = place.userRatingCount || 0;
+        if (reviewCount < 10) {
+          demoCache.set(cacheKey, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Not Quite Ready</h1><p style="opacity:.6;max-width:400px;margin:0 auto 1.5rem;line-height:1.7;">This business needs at least 10 Google reviews before we can build a great demo.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
+          demoProgress.delete(cacheKey);
+          return;
+        }
+
+        const allPhotoUrls = (place.photos||[]).slice(0,8).map(p=>getPhotoUrl(p.name,1400));
+        const [photos, copy] = await Promise.all([
+          classifyPhotosWithOverride(allPhotoUrls, industry, place_id),
+          generateCopy(place, industry)
+        ]);
+
+        if (booking_url) copy.booking_url = booking_url;
+        const html = renderDemo(place, copy, photos, industry, layout);
+        demoCache.set(cacheKey, html);
+        demoProgress.delete(cacheKey);
+        console.log(`✓ Done — ${industry} / ${layout||defaultLayouts[industry]}`);
+
+      } catch (err) {
+        console.error(err);
+        demoErrors.set(cacheKey, err.message);
+        demoProgress.delete(cacheKey);
+      }
+    })();
+  }
+
+  // Return loading page immediately — client polls /demo-status every 2s
+  res.setHeader('Content-Type', 'text/html');
+  res.send(loadingPage(place_id, layout));
 });
 
 app.get('/cache', (req, res) => {
