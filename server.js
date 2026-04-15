@@ -694,6 +694,14 @@ function loadingPage(place_id, layout) {
       margin-bottom: 0.65rem;
       text-align: center;
     }
+    .tagline {
+      font-size: 0.8rem;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.35);
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
     .sub {
       font-size: 0.95rem;
       color: rgba(255,255,255,0.45);
@@ -732,6 +740,7 @@ function loadingPage(place_id, layout) {
   <div class="wordmark">Hello<em>Site</em></div>
   <div class="bar-track"><div class="bar-fill"></div></div>
   <h1>Building your site&hellip;</h1>
+  <p class="tagline">More locals. More walk-ins. More business.</p>
   <p class="sub">Pulling your reviews, photos, and business info</p>
   <div class="error-box" id="errBox">
     <p>This is taking longer than expected. Please try refreshing, or come back in a moment.</p>
