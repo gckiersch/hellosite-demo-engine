@@ -272,7 +272,9 @@ function baseHTML(name, theme, body) {
   @media(max-width:768px){
     .mob-hide{display:none!important;}
     .mob-stack{grid-template-columns:1fr!important;min-height:auto!important;height:auto!important;gap:2rem!important;}
+    .svc-grid{grid-template-columns:1fr 1fr!important;gap:8px!important;}
     .mob-pad{padding:3.5rem 1.5rem!important;}
+    .hero-pad{padding-top:5rem!important;}
     #contact .mob-stack,#contact.mob-pad{text-align:left;}
     footer{flex-direction:column!important;gap:.75rem!important;text-align:center!important;padding:1.5rem!important;}
   }
@@ -325,7 +327,7 @@ function servicesHTML(copy, primary, theme, style, industry) {
     <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:${primary};margin-bottom:.6rem;">${eyebrow}</p>
     <h2 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;color:${text};">${copy.services_label||eyebrow}</h2>
     ${subLine}
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:${border};border:1px solid ${border};border-radius:6px;overflow:hidden;margin-top:2.5rem;" class="mob-stack">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:${border};border:1px solid ${border};border-radius:6px;overflow:hidden;margin-top:2.5rem;" class="svc-grid">
       ${copy.services.map((s,i) => `
       <div style="background:${bg};padding:1.75rem 2rem;transition:background .2s;" onmouseover="this.style.background='${bg2}'" onmouseout="this.style.background='${bg}'">
         <div style="width:32px;height:3px;background:${primary};margin-bottom:1rem;border-radius:2px;opacity:.8;"></div>
@@ -534,7 +536,7 @@ function layoutSplit(place, copy, photos, industry) {
   return baseHTML(name, theme, `
     ${navHTML(shortName, copy, theme, navLinks)}
     <section style="min-height:auto;display:grid;grid-template-columns:1fr 1fr;" class="mob-stack">
-      <div style="display:flex;flex-direction:column;justify-content:center;padding:9rem 4rem 5rem 5rem;background:${panelBg};position:relative;z-index:2;" class="mob-pad">
+      <div style="display:flex;flex-direction:column;justify-content:center;padding:9rem 4rem 5rem 5rem;background:${panelBg};position:relative;z-index:2;" class="mob-pad hero-pad">
         <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:${a};margin-bottom:1.25rem;" class="fu">${copy.tagline}</p>
         <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,7vw,4.2rem);line-height:.88;letter-spacing:.02em;margin-bottom:1.5rem;color:${textColor};" class="fu d1">${formatHeadline(copy.hero_headline, a)}</h1>
         <p style="font-size:1rem;color:${mutedColor};line-height:1.8;max-width:400px;margin-bottom:2.5rem;" class="fu d2">${copy.hero_sub}</p>
