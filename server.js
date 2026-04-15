@@ -732,7 +732,7 @@ function loadingPage(place_id, layout) {
   <div class="wordmark">Hello<em>Site</em></div>
   <div class="bar-track"><div class="bar-fill"></div></div>
   <h1>Building your site&hellip;</h1>
-  <p class="sub">Pulling your reviews, photos, and business info from Google</p>
+  <p class="sub">Pulling your reviews, photos, and business info</p>
   <div class="error-box" id="errBox">
     <p>This is taking longer than expected. Please try refreshing, or come back in a moment.</p>
     <a href="javascript:location.reload()">Refresh &rarr;</a>
