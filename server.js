@@ -276,7 +276,7 @@ function baseHTML(name, theme, body) {
     #contact .mob-stack,#contact.mob-pad{text-align:left;}
     footer{flex-direction:column!important;gap:.75rem!important;text-align:center!important;padding:1.5rem!important;}
   }
-  @media(max-width:480px){h1{font-size:2rem!important;}}
+  @media(max-width:480px){h1{font-size:2.4rem!important;}}
 </style>
 </head>
 <body>${body}</body>
@@ -485,7 +485,7 @@ function layoutFullBleed(place, copy, photos, industry) {
         <div style="display:inline-flex;align-items:center;gap:.5rem;border:1px solid ${p};color:${p};font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.15em;padding:.35rem .9rem;border-radius:2px;margin-bottom:1.5rem;">
           <span style="width:5px;height:5px;background:${p};border-radius:50%;animation:pulse 2s infinite;"></span>${copy.tagline}
         </div>
-        <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.2rem,6vw,3.8rem);line-height:.9;letter-spacing:.01em;margin-bottom:1.5rem;color:#f5f2ed;" class="fu d1">${formatHeadline(copy.hero_headline, p)}</h1>
+        <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,7vw,4.2rem);line-height:.9;letter-spacing:.01em;margin-bottom:1.5rem;color:#f5f2ed;" class="fu d1">${formatHeadline(copy.hero_headline, p)}</h1>
         <p style="font-size:1.05rem;color:rgba(255,255,255,.55);line-height:1.78;max-width:500px;margin-bottom:2.5rem;" class="fu d2">${copy.hero_sub}</p>
         <div style="display:flex;gap:.85rem;flex-wrap:wrap;" class="fu d3">
           ${phone?`<a href="tel:${cleanPhone(phone)}" style="background:${h};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">📞 ${phone}</a>`:''}
@@ -536,7 +536,7 @@ function layoutSplit(place, copy, photos, industry) {
     <section style="min-height:100vh;display:grid;grid-template-columns:1fr 1fr;" class="mob-stack">
       <div style="display:flex;flex-direction:column;justify-content:center;padding:9rem 4rem 5rem 5rem;background:${panelBg};position:relative;z-index:2;" class="mob-pad">
         <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:${a};margin-bottom:1.25rem;" class="fu">${copy.tagline}</p>
-        <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.2rem,6vw,3.8rem);line-height:.88;letter-spacing:.02em;margin-bottom:1.5rem;color:${textColor};" class="fu d1">${formatHeadline(copy.hero_headline, a)}</h1>
+        <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,7vw,4.2rem);line-height:.88;letter-spacing:.02em;margin-bottom:1.5rem;color:${textColor};" class="fu d1">${formatHeadline(copy.hero_headline, a)}</h1>
         <p style="font-size:1rem;color:${mutedColor};line-height:1.8;max-width:400px;margin-bottom:2.5rem;" class="fu d2">${copy.hero_sub}</p>
         <div style="display:flex;gap:.85rem;flex-wrap:wrap;" class="fu d3">
           ${phone?`<a href="tel:${cleanPhone(phone)}" style="background:${a};color:${isDark?'#000':'#fff'};padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">${ctaLabel}</a>`:''}
@@ -591,7 +591,7 @@ function layoutWellness(place, copy, photos, industry) {
 
       <div style="position:relative;z-index:2;padding:0 5rem 5rem;width:100%;max-width:800px;" class="mob-pad fu">
         <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.15em;padding:.38rem 1rem;border-radius:100px;margin-bottom:1.25rem;">${copy.tagline}</div>
-        <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(2.2rem,6vw,3.8rem);font-weight:700;line-height:1.0;letter-spacing:-.02em;color:#fff;margin-bottom:1.25rem;" class="fu d1">${copy.hero_headline.replace(/\\n|\n/g,'<br>')}</h1>
+        <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.0;letter-spacing:-.02em;color:#fff;margin-bottom:1.25rem;" class="fu d1">${copy.hero_headline.replace(/\\n|\n/g,'<br>')}</h1>
         <p style="font-size:1.05rem;color:rgba(255,255,255,.65);line-height:1.75;max-width:500px;margin-bottom:2rem;" class="fu d2">${copy.hero_sub}</p>
         <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;" class="fu d3">
           <a href="https://www.gethellosite.com/#demo" style="background:${p};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">See my site →</a>

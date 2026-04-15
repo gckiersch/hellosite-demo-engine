@@ -72,7 +72,7 @@ img{display:block;}
   .gfooter{grid-template-columns:1fr!important;}
   .mob-pad{padding:36px 20px!important;}
 }
-@media(max-width:480px){h1{font-size:2rem!important;}}
+@media(max-width:480px){h1{font-size:2.4rem!important;}}
 ${extraCSS||''}
 </style>
 </head>
@@ -131,14 +131,14 @@ img{display:block;}
 .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}
 @media(max-width:680px){
   .desk-only{display:none!important;}
-  .hero-h1{font-size:clamp(2.2rem,6vw,3.8rem)!important;}
+  .hero-h1{font-size:clamp(2.4rem,7vw,4.2rem)!important;}
   .sec{padding:36px 20px!important;}
   .svc-grid{grid-template-columns:1fr 1fr!important;}
   .ft-grid{grid-template-columns:1fr!important;gap:24px!important;}
   .stats-grid{grid-template-columns:1fr 1fr!important;}
   .mob-hide{display:none!important;}
 }
-@media(max-width:480px){.hero-h1{font-size:2rem!important;}}
+@media(max-width:480px){.hero-h1{font-size:2.4rem!important;}}
 </style>
 </head>
 <body>
@@ -161,7 +161,7 @@ img{display:block;}
   </div>
   <div style="position:relative;z-index:2;padding:0 36px 52px;max-width:800px;" class="sec">
     <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);padding:6px 14px;border-radius:100px;margin-bottom:20px;" class="fu"><span style="color:#FFD700;font-size:14px;letter-spacing:2px;">${stars(rating)}</span><span style="font-size:13px;font-weight:600;color:#fff;">${rating}</span><span style="font-size:12px;color:rgba(255,255,255,.55);">&nbsp;·&nbsp;${reviewCount} Google reviews</span></div>
-    <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(2.2rem,6vw,3.8rem);font-weight:800;line-height:.93;color:#fff;margin-bottom:16px;" class="fu d1 hero-h1">${headline(copy.hero_headline,'#7EB3FF')}</h1>
+    <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:800;line-height:.93;color:#fff;margin-bottom:16px;" class="fu d1 hero-h1">${headline(copy.hero_headline,'#7EB3FF')}</h1>
     <p style="font-size:17px;color:rgba(255,255,255,.65);line-height:1.7;max-width:500px;margin-bottom:28px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;" class="fu d3">
       <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:14px 28px;border-radius:5px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 4px 20px rgba(0,0,0,.25);display:inline-flex;align-items:center;gap:8px;">📞 Call Now - ${esc(phone)}</a>
@@ -245,7 +245,7 @@ function templateGrooming(place, copy, photos) {
   <div style="padding:44px 36px 52px;max-width:660px;margin:0 auto;text-align:center;" class="mob-pad">
     <span style="color:${ACCENT};font-size:17px;letter-spacing:2px;" class="fu">${stars(rating)}</span>
     <p style="font-size:10px;color:${MUTED};letter-spacing:.2em;text-transform:uppercase;margin-top:8px;margin-bottom:32px;" class="fu">${rating} Stars · ${reviewCount} Reviews</p>
-    <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,6vw,3.8rem);font-weight:700;line-height:1.0;margin-bottom:22px;" class="fu d1">
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.0;margin-bottom:22px;" class="fu d1">
       ${headline(copy.hero_headline,ACCENT)}
     </h1>
     <p style="font-size:14px;color:${MUTED};margin-bottom:36px;font-weight:300;letter-spacing:.03em;line-height:1.8;" class="fu d2">${esc(copy.hero_sub||'')}</p>
@@ -317,7 +317,7 @@ function templateWellness(place, copy, photos) {
     ${photos.hero?`<img src="${photos.hero}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy"/><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(20,28,16,.85) 0%,rgba(20,28,16,.35) 50%,transparent 100%);"></div>`:`<div style="position:absolute;inset:0;background:linear-gradient(135deg,${ACCENT},#4a5c3a);"></div><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(20,28,16,.7) 0%,transparent 60%);"></div>`}
     <div style="position:relative;z-index:2;padding:0 36px 52px;max-width:720px;" class="mob-pad">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;" class="fu"><span style="color:#FFD700;font-size:16px;">${stars(rating)}</span><span style="color:rgba(255,255,255,.7);font-size:13px;">${rating} · ${reviewCount} reviews</span></div>
-      <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,6vw,3.8rem);font-weight:700;line-height:1.08;color:#fff;margin-bottom:18px;" class="fu d1">${headline(copy.hero_headline,'#C8D8B8')}</h1>
+      <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.08;color:#fff;margin-bottom:18px;" class="fu d1">${headline(copy.hero_headline,'#C8D8B8')}</h1>
       <p style="font-size:16px;color:rgba(255,255,255,.65);max-width:460px;line-height:1.8;margin-bottom:32px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
       <div style="display:flex;gap:14px;align-items:center;" class="fu d3">
         <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:13px 28px;border-radius:4px;font-size:14px;font-weight:700;">Schedule a Session</a>
@@ -385,7 +385,7 @@ function templatePet(place, copy, photos) {
       <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
       <span style="font-size:13px;color:${MUTED};font-weight:600;">${rating} stars · ${reviewCount} happy pet parents</span>
     </div>
-    <h1 style="font-size:clamp(2.2rem,6vw,3.8rem);font-weight:800;line-height:1.08;margin-bottom:16px;" class="fu d1">
+    <h1 style="font-size:clamp(2.4rem,7vw,4.2rem);font-weight:800;line-height:1.08;margin-bottom:16px;" class="fu d1">
       ${headline(copy.hero_headline,ACCENT)}
     </h1>
     <p style="font-size:16px;color:${MUTED};max-width:460px;line-height:1.75;margin-bottom:32px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
@@ -468,7 +468,7 @@ function templateRetail(place, copy, photos) {
       <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
       <span style="font-size:13px;color:${MUTED};">${rating} · ${reviewCount} reviews</span>
     </div>
-    <h1 style="font-family:'Playfair Display',serif;font-size:clamp(2.2rem,6vw,3.8rem);font-weight:800;line-height:1.08;margin-bottom:20px;" class="fu d1">
+    <h1 style="font-family:'Playfair Display',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:800;line-height:1.08;margin-bottom:20px;" class="fu d1">
       ${headline(copy.hero_headline,ACCENT)}
     </h1>
     <p style="font-size:16px;color:${MUTED};max-width:460px;line-height:1.8;margin-bottom:36px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
@@ -536,7 +536,7 @@ function templateRealEstate(place, copy, photos) {
   </div>
   <div style="padding:62px 36px 50px;max-width:960px;margin:0 auto;" class="mob-pad">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;" class="fu"><span style="color:#F59E0B;font-size:16px;">${stars(rating)}</span><span style="font-size:13px;color:${MUTED};">${rating} · ${reviewCount} client reviews</span></div>
-    <h1 style="font-family:'Libre Baskerville',serif;font-size:clamp(2.2rem,6vw,3.8rem);font-weight:700;line-height:1.1;color:${TEXT};margin-bottom:20px;" class="fu d1">${headline(copy.hero_headline,ACCENT)}</h1>
+    <h1 style="font-family:'Libre Baskerville',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.1;color:${TEXT};margin-bottom:20px;" class="fu d1">${headline(copy.hero_headline,ACCENT)}</h1>
     <div style="width:56px;height:3px;background:${ACCENT};margin-bottom:22px;opacity:.4;" class="fu d2"></div>
     <p style="font-size:16px;color:${MUTED};max-width:520px;line-height:1.85;margin-bottom:36px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
     <div style="display:flex;gap:14px;" class="fu d3">
