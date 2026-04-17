@@ -298,7 +298,7 @@ function navHTML(shortName, copy, theme, links, place) {
   const border = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
   const h = copy.color_highlight || copy.color_primary;
   const btnColor = isDark ? '#000' : '#fff';
-  return `<nav style="position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:.9rem 2.5rem;background:${bg};backdrop-filter:blur(16px);border-bottom:1px solid ${border};">
+  return `<nav aria-label="Primary" style="position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:.9rem 2.5rem;background:${bg};backdrop-filter:blur(16px);border-bottom:1px solid ${border};">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.06em;color:${text};">${shortName}</div>
     <ul style="display:flex;gap:2rem;list-style:none;align-items:center;" class="mob-hide">
       ${links.map((l,i) => i===links.length-1
@@ -988,6 +988,75 @@ app.post('/api/domain-dns', express.json(), async (req, res) => {
     console.error('domain-dns error:', err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// ─── PRIVACY POLICY (stopgap; canonical copy lives at gethellosite.com/privacy-policy) ──
+app.get('/privacy-policy', (req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Policy — HelloSite</title>
+<meta name="description" content="HelloSite privacy policy covering how we collect, use, and share information.">
+<link rel="icon" type="image/x-icon" href="https://www.gethellosite.com/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=DM+Sans:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--ink:#17324D;--sky:#3B9AE8;--cream:#FFF7E8;--ink-60:rgba(23,50,77,.6);--ink-30:rgba(23,50,77,.3);--ink-08:rgba(23,50,77,.08);}
+html{scroll-behavior:smooth;}
+body{background:var(--cream);color:var(--ink);font-family:'DM Sans',sans-serif;font-weight:300;-webkit-font-smoothing:antialiased;}
+a{color:var(--sky);}
+:focus{outline:none;}
+:focus-visible{outline:3px solid var(--sky);outline-offset:3px;border-radius:3px;}
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--ink);color:#fff;padding:.75rem 1.25rem;z-index:999;font-weight:600;text-decoration:none;border-radius:0 0 8px 0;}
+.skip-link:focus{left:0;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1rem 2.5rem;background:rgba(255,247,232,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--ink-08);}
+.nav-logo{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.4rem;font-weight:800;letter-spacing:-.04em;color:var(--ink);text-decoration:none;}
+.nav-logo em{color:var(--sky);font-style:normal;}
+.nav-back{font-size:.82rem;color:var(--ink-60);text-decoration:none;font-weight:500;}
+.nav-back:hover{color:var(--ink);}
+.wrap{max-width:680px;margin:0 auto;padding:8rem 2.5rem 4rem;}
+.page-title{font-family:'Fraunces',serif;font-size:clamp(2rem,4vw,3rem);font-weight:600;letter-spacing:-.03em;line-height:1.1;margin-bottom:.5rem;}
+.updated{font-size:.78rem;color:var(--ink-30);margin-bottom:2.5rem;}
+h2{font-size:1.1rem;font-weight:600;margin:2rem 0 .75rem;color:var(--ink);}
+p,li{font-size:.88rem;color:var(--ink-60);line-height:1.8;margin-bottom:.75rem;}
+ul{padding-left:1.25rem;margin-bottom:.75rem;}
+section{margin-bottom:.5rem;}
+footer{padding:2rem 2.5rem;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--ink-08);flex-wrap:wrap;gap:1rem;}
+.foot-logo{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.2rem;font-weight:800;letter-spacing:-.04em;}
+.foot-logo em{color:var(--sky);font-style:normal;}
+.foot-copy{font-size:.7rem;color:var(--ink-30);}
+@media(max-width:768px){nav{padding:.875rem 1.5rem;}.wrap{padding:6.5rem 1.5rem 3rem;}footer{flex-direction:column;padding:1.5rem;}}
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+<nav aria-label="Primary">
+  <a href="https://www.gethellosite.com" class="nav-logo" aria-label="HelloSite home">Hello<em>Site</em></a>
+  <a href="https://www.gethellosite.com" class="nav-back">&larr; Back</a>
+</nav>
+<main id="main" class="wrap">
+  <h1 class="page-title">Privacy Policy</h1>
+  <p class="updated">Effective Date: April 17, 2026</p>
+  <section aria-labelledby="overview-heading"><h2 id="overview-heading">Overview</h2><p>HelloSite (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share information when you visit gethellosite.com or use our services. Because we operate in California, this policy is written to comply with the California Consumer Privacy Act (CCPA).</p></section>
+  <section aria-labelledby="info-collected-heading"><h2 id="info-collected-heading">Information We Collect</h2><p>We collect the following categories of personal information:</p><ul><li><strong>Contact Information</strong> &mdash; name, email address, phone number, and business name submitted through our demo request or contact forms.</li><li><strong>Business Information</strong> &mdash; city, business type, and service tier selected when requesting a demo.</li><li><strong>Payment Information</strong> &mdash; billing details processed securely through Stripe. We do not store your payment card information directly.</li><li><strong>Usage Data</strong> &mdash; pages visited, time on site, and browser/device type collected via standard analytics tools.</li></ul></section>
+  <section aria-labelledby="how-we-use-heading"><h2 id="how-we-use-heading">How We Use Your Information</h2><p>We use the information we collect to:</p><ul><li>Build and deliver your HelloSite demo website.</li><li>Communicate with you about your demo, plan options, and account.</li><li>Process payments for HelloSite subscriptions.</li><li>Send follow-up outreach related to our services.</li><li>Improve our website and service offerings.</li></ul></section>
+  <section aria-labelledby="third-parties-heading"><h2 id="third-parties-heading">Third Parties We Work With</h2><p>To deliver our services, we share certain data with trusted third-party tools:</p><ul><li><strong>Stripe</strong> &mdash; Payment processing.</li><li><strong>Airtable</strong> &mdash; Customer relationship management.</li><li><strong>Instantly</strong> &mdash; Email outreach and follow-up.</li><li><strong>Yelp</strong> &mdash; Business data enrichment.</li><li><strong>Google</strong> &mdash; Website hosting and analytics.</li></ul><p>We do not sell your personal information to third parties.</p></section>
+  <section aria-labelledby="ccpa-heading"><h2 id="ccpa-heading">Your Rights as a California Resident</h2><p>Under the CCPA, California residents have the right to:</p><ul><li><strong>Know</strong> what personal information we collect, use, and share.</li><li><strong>Delete</strong> your personal information, subject to certain exceptions.</li><li><strong>Opt out</strong> of the sale of personal information (we do not sell personal data).</li><li><strong>Non-discrimination</strong> &mdash; we will not treat you differently for exercising your privacy rights.</li></ul><p>To exercise any of these rights, contact us at <a href="mailto:privacy@gethellosite.com">privacy@gethellosite.com</a>. We will respond to verified requests within 45 days.</p></section>
+  <section aria-labelledby="retention-heading"><h2 id="retention-heading">Data Retention</h2><p>We retain your information for as long as needed to provide our services or as required by law. You may request deletion at any time using the contact above.</p></section>
+  <section aria-labelledby="security-heading"><h2 id="security-heading">Security</h2><p>We take reasonable technical and organizational measures to protect your information. However, no method of transmission over the internet is 100% secure.</p></section>
+  <section aria-labelledby="changes-heading"><h2 id="changes-heading">Changes to This Policy</h2><p>We may update this Privacy Policy from time to time. When we do, we&rsquo;ll revise the effective date at the top of this page. Continued use of our site after changes constitutes acceptance of the updated policy.</p></section>
+  <section aria-labelledby="contact-heading"><h2 id="contact-heading">Contact Us</h2><p>HelloSite<br>Email: <a href="mailto:privacy@gethellosite.com">privacy@gethellosite.com</a><br>Website: <a href="https://www.gethellosite.com">gethellosite.com</a></p></section>
+</main>
+<footer>
+  <div class="foot-logo">Hello<em>Site</em></div>
+  <a href="https://www.gethellosite.com" class="nav-back" aria-label="Back to HelloSite home">&larr; Back to HelloSite</a>
+  <div class="foot-copy">&copy; 2026 HelloSite &middot; GetHelloSite.com</div>
+</footer>
+</body>
+</html>`);
 });
 
 // ─── CHECKOUT PAGE ───────────────────────────────────────────────────────────

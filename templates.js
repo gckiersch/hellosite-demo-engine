@@ -36,9 +36,10 @@ function bestReview(reviews){
   const pick=sorted[0]||(reviews||[])[0]||{};
   return{text:(pick.text?.text||'').slice(0,240),author:pick.authorAttribution?.displayName||'Local Customer',rating:pick.rating||5};
 }
-function galleryStrip(gallery,border){
+function galleryStrip(gallery,border,businessName){
   if(!gallery?.length)return'';
   const cols=Math.min(gallery.length,3);
+  const altBase=businessName?esc(businessName):'Business';
   return`
 <style>
 .hs-gstrip-wrap{width:100%;max-width:100%;}
@@ -56,7 +57,7 @@ function galleryStrip(gallery,border){
 }
 </style>
 <div class="hs-gstrip-wrap">
-<div class="hs-gstrip">${gallery.slice(0,3).map(url=>`<div class="hs-gsitem"><img src="${url}" loading="lazy" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}</div>
+<div class="hs-gstrip" role="region" aria-label="${altBase} photo gallery">${gallery.slice(0,3).map((url,i)=>`<div class="hs-gsitem"><img src="${url}" loading="lazy" alt="${altBase} photo ${i+1} of ${Math.min(gallery.length,3)}" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}</div>
 <div class="hs-gstrip-dots">${gallery.slice(0,3).map((_,i)=>`<span class="${i===0?'active':''}"></span>`).join('')}</div>
 </div>
 <script>(function(){var wraps=document.querySelectorAll('.hs-gstrip-wrap');wraps.forEach(function(w){var scroller=w.querySelector('.hs-gstrip');var items=w.querySelectorAll('.hs-gsitem');var dots=w.querySelectorAll('.hs-gstrip-dots span');if(!scroller||!items.length||!dots.length)return;if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){var best=null,br=0;es.forEach(function(e){if(e.intersectionRatio>br){br=e.intersectionRatio;best=e.target;}});if(best){var i=Array.prototype.indexOf.call(items,best);if(i>=0)dots.forEach(function(d,j){d.classList.toggle('active',j===i);});}},{root:scroller,threshold:[0.25,0.5,0.75]});items.forEach(function(it){io.observe(it);});}});})();</script>`;
@@ -65,7 +66,7 @@ function secureSiteUrl(businessId){
   return `https://demo.gethellosite.com/secure/${encodeURIComponent(businessId || '')}`;
 }
 function claimCTA(accent, businessId){
-  return`<a href="${secureSiteUrl(businessId)}" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:${accent};color:#fff;padding:13px 22px;border-radius:6px;font-size:13px;font-weight:600;letter-spacing:.03em;box-shadow:0 8px 28px ${accent}44;font-family:system-ui,sans-serif;line-height:1.4;text-align:center;max-width:220px;text-decoration:none;">✦ Launch your site<br><span style="font-size:11px;opacity:.85;font-weight:400;">Live in 24 hours</span></a>`;
+  return`<a href="${secureSiteUrl(businessId)}" aria-label="Launch your site — go to secure checkout" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:${accent};color:#fff;padding:13px 22px;border-radius:6px;font-size:13px;font-weight:600;letter-spacing:.03em;box-shadow:0 8px 28px ${accent}44;font-family:system-ui,sans-serif;line-height:1.4;text-align:center;max-width:220px;text-decoration:none;"><span aria-hidden="true">✦ </span>Launch your site<br><span style="font-size:11px;opacity:.85;font-weight:400;">Live in 24 hours</span></a>`;
 }
 
 const FAVICON = `<link rel="icon" type="image/x-icon" href="https://www.gethellosite.com/favicon.ico">`;
@@ -86,6 +87,12 @@ html{scroll-behavior:smooth;overflow-x:hidden;}
 body{overflow-x:hidden;-webkit-font-smoothing:antialiased;}
 a{text-decoration:none;color:inherit;}
 img{display:block;}
+/* ── Accessibility: visible keyboard focus ─────────────────────────── */
+:focus{outline:none;}
+:focus-visible{outline:3px solid currentColor;outline-offset:3px;border-radius:3px;}
+/* ── Accessibility: skip-to-main link, visible on focus ────────────── */
+.skip-link{position:absolute;left:-9999px;top:0;background:#111;color:#fff;padding:.75rem 1.25rem;z-index:9999;font-weight:600;text-decoration:none;border-radius:0 0 8px 0;font-family:system-ui,sans-serif;font-size:14px;}
+.skip-link:focus{left:0;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 .fu{opacity:0;animation:fadeUp .6s ease forwards;}
 .d1{animation-delay:.1s}.d2{animation-delay:.22s}.d3{animation-delay:.34s}
@@ -100,7 +107,10 @@ img{display:block;}
 ${extraCSS||''}
 </style>
 </head>
-<body>${body}</body>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+${body}
+</body>
 </html>`;
 }
 
@@ -307,7 +317,7 @@ function templateGrooming(place, copy, photos) {
     <div style="width:36px;height:1px;background:${ACCENT};margin:28px auto 0;opacity:.3;"></div>
   </div>
 
-  ${galleryStrip(photos.gallery,BORDER)}
+  ${galleryStrip(photos.gallery,BORDER,name)}
 
   <div style="border-top:1px solid ${BORDER};background:${SURFACE};padding:28px 36px;text-align:center;" class="mob-pad">
     <p style="font-size:13px;color:${MUTED};margin-bottom:10px;">${esc(address)}</p>
@@ -372,7 +382,7 @@ function templateWellness(place, copy, photos) {
       <p style="font-size:12px;color:${MUTED};letter-spacing:.06em;">- ${esc(review.author)}</p>
     </div>
   </div>
-  ${galleryStrip(photos.gallery,BORDER)}
+  ${galleryStrip(photos.gallery,BORDER,name)}
   <div style="background:${SURFACE};padding:36px;border-top:1px solid ${BORDER};" class="mob-pad">
     <div style="max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;" class="gfooter">
       <div><p style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:700;color:${TEXT};margin-bottom:9px;">Find Us</p><p style="font-size:13px;color:${MUTED};line-height:1.9;">${esc(address)}</p></div>
@@ -446,7 +456,7 @@ function templatePet(place, copy, photos) {
     <p style="font-size:12px;color:${MUTED};font-weight:600;">- ${esc(review.author)}</p>
   </div>
 
-  ${galleryStrip(photos.gallery,BORDER)}
+  ${galleryStrip(photos.gallery,BORDER,name)}
 
   <div style="background:${SURFACE};padding:36px 32px;border-top:2px solid ${BORDER};" class="mob-pad">
     <div style="max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;" class="gfooter">
@@ -533,7 +543,7 @@ function templateRetail(place, copy, photos) {
     <div style="width:48px;height:2px;background:${ACCENT};margin:24px auto 0;"></div>
   </div>
 
-  ${galleryStrip(photos.gallery,BORDER)}
+  ${galleryStrip(photos.gallery,BORDER,name)}
 
   <div style="background:${SURFACE};padding:36px;border-top:1px solid ${BORDER};" class="mob-pad" id="contact">
     <div style="max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;" class="gfooter">
@@ -597,7 +607,7 @@ function templateRealEstate(place, copy, photos) {
       <p style="font-size:11px;color:${MUTED};letter-spacing:.08em;text-transform:uppercase;">- ${esc(review.author)}</p>
     </div>
   </div>
-  ${galleryStrip(photos.gallery,BORDER)}
+  ${galleryStrip(photos.gallery,BORDER,name)}
   <div style="background:${SURFACE};padding:36px;border-top:1px solid ${BORDER};" class="mob-pad" id="contact">
     <div style="max-width:960px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;" class="gfooter">
       <div><p style="font-family:'Libre Baskerville',serif;font-size:11px;font-weight:700;color:${ACCENT};letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Office</p><p style="font-size:13px;color:${MUTED};line-height:1.9;">${esc(address)}</p></div>

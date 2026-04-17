@@ -75,6 +75,13 @@ html{scroll-behavior:smooth;}
 body{background:${BG};color:${TEXT};font-family:'Inter',system-ui,-apple-system,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;}
 a{color:inherit;text-decoration:none;}
 img{display:block;max-width:100%;}
+/* ── Accessibility: keyboard-only focus ─────────────────────────────── */
+:focus{outline:none;}
+:focus-visible{outline:3px solid ${BRAND_BLUE};outline-offset:3px;border-radius:4px;}
+.btn:focus-visible{outline-offset:4px;}
+/* ── Accessibility: skip-to-main link ───────────────────────────────── */
+.skip-link{position:absolute;left:-9999px;top:0;background:${ACCENT};color:#fff;padding:.75rem 1.25rem;z-index:99999;font-weight:600;text-decoration:none;border-radius:0 0 8px 0;font-size:14px;}
+.skip-link:focus{left:0;}
 .serif{font-family:'Libre Baskerville',Georgia,serif;}
 .wrap{max-width:1180px;margin:0 auto;padding:0 28px;}
 
@@ -260,16 +267,20 @@ body.co-open{overflow:hidden;}
 </head>
 <body>
 
+<a href="#main" class="skip-link">Skip to main content</a>
+
 <!-- ─── NAV ─────────────────────────────────────────────────────────────── -->
-<nav class="nav">
+<nav class="nav" aria-label="Primary">
   <div class="nav-inner">
-    <a href="https://www.gethellosite.com" class="brand">Hello<em>Site</em></a>
+    <a href="https://www.gethellosite.com" class="brand" aria-label="HelloSite home">Hello<em>Site</em></a>
     <div class="nav-right">
       <a href="#packages">Packages</a>
-      <a href="mailto:${SUPPORT_EMAIL}">Questions?</a>
+      <a href="mailto:${SUPPORT_EMAIL}" aria-label="Contact support by email">Questions?</a>
     </div>
   </div>
 </nav>
+
+<main id="main">
 
 <!-- ─── HERO ────────────────────────────────────────────────────────────── -->
 <section class="hero">
@@ -292,7 +303,7 @@ body.co-open{overflow:hidden;}
         </p>
       </div>
       <div class="preview reveal">
-        <div class="preview-bar">
+        <div class="preview-bar" aria-hidden="true">
           <i></i><i></i><i></i>
           <div class="url">${esc(name.toLowerCase().replace(/[^a-z0-9]+/g,''))}.com</div>
         </div>
@@ -431,10 +442,10 @@ body.co-open{overflow:hidden;}
 <section class="section" style="padding:56px 0;">
   <div class="wrap">
     <div class="trust-row">
-      <div class="trust reveal"><div class="trust-icon">◈</div><h4>No contract</h4><p>Month to month. Cancel anytime, no lock-ins.</p></div>
-      <div class="trust reveal"><div class="trust-icon">◎</div><h4>Live in 24 hours</h4><p>Most sites go live within a day of onboarding.</p></div>
-      <div class="trust reveal"><div class="trust-icon">◇</div><h4>Built by humans</h4><p>A real person reviews every site before launch.</p></div>
-      <div class="trust reveal"><div class="trust-icon">◉</div><h4>Secure checkout</h4><p>Payments handled by Stripe. Your card stays safe.</p></div>
+      <div class="trust reveal"><div class="trust-icon" aria-hidden="true">◈</div><h4>No contract</h4><p>Month to month. Cancel anytime, no lock-ins.</p></div>
+      <div class="trust reveal"><div class="trust-icon" aria-hidden="true">◎</div><h4>Live in 24 hours</h4><p>Most sites go live within a day of onboarding.</p></div>
+      <div class="trust reveal"><div class="trust-icon" aria-hidden="true">◇</div><h4>Built by humans</h4><p>A real person reviews every site before launch.</p></div>
+      <div class="trust reveal"><div class="trust-icon" aria-hidden="true">◉</div><h4>Secure checkout</h4><p>Payments handled by Stripe. Your card stays safe.</p></div>
     </div>
   </div>
 </section>
@@ -466,6 +477,8 @@ body.co-open{overflow:hidden;}
     </div>
   </div>
 </section>
+
+</main>
 
 <!-- ─── CHECKOUT MODAL ──────────────────────────────────────────────────── -->
 <div class="co-modal" id="coModal" aria-hidden="true">
