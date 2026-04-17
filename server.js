@@ -350,7 +350,7 @@ function galleryHTML(images, name, theme) {
   const imgs = images.slice(0,3);
   return `<div style="background:${bg};">
     <div style="display:grid;grid-template-columns:repeat(${imgs.length},1fr);gap:4px;">
-      ${imgs.map(url=>`<div style="aspect-ratio:4/3;overflow:hidden;"><img src="${url}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}
+      ${imgs.map((url,i)=>`<div style="aspect-ratio:4/3;overflow:hidden;"><img src="${url}" alt="${name} — photo ${i+1} of ${imgs.length}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}
     </div>
   </div>`;
 }
@@ -373,7 +373,7 @@ function reviewsHTML(reviews, rating, reviewCount, primary, theme) {
       <div style="display:flex;align-items:center;gap:1rem;background:${bg2};border:1px solid ${border};padding:.8rem 1.5rem;border-radius:4px;">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:3rem;color:${primary};line-height:1;">${rating}</div>
         <div>
-          <div style="color:#f59e0b;font-size:1rem;">${stars(rating)}</div>
+          <div style="color:#f59e0b;font-size:1rem;" role="img" aria-label="${rating} out of 5 stars, ${reviewCount} reviews">${stars(rating)}</div>
           <div style="font-size:.7rem;color:${muted};margin-top:.2rem;font-family:'DM Mono',monospace;">${reviewCount} Google reviews</div>
         </div>
       </div>
@@ -426,7 +426,7 @@ function contactHTML(copy, place, primary, highlight, theme) {
       }).join('')}</div>` : ''}
     </div>
     <div style="display:flex;flex-direction:column;gap:.75rem;">
-      ${phone?`<a href="tel:${cleanPhone(phone)}" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;background:${bg2};border:1px solid ${border};border-radius:4px;text-decoration:none;color:${text};">
+      ${phone?`<a href="tel:${cleanPhone(phone)}" aria-label="Call ${phone}" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;background:${bg2};border:1px solid ${border};border-radius:4px;text-decoration:none;color:${text};">
         <span style="font-size:1.1rem;">📞</span>
         <div><div style="font-size:.6rem;color:${muted};letter-spacing:.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:.15rem;">Phone</div><div style="font-size:.92rem;font-weight:500;">${phone}</div></div>
       </a>`:''}
@@ -494,7 +494,7 @@ function layoutFullBleed(place, copy, photos, industry) {
         <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,7vw,4.2rem);line-height:.9;letter-spacing:.01em;margin-bottom:1.5rem;color:#f5f2ed;" class="fu d1">${formatHeadline(copy.hero_headline, p)}</h1>
         <p style="font-size:1.05rem;color:rgba(255,255,255,.55);line-height:1.78;max-width:500px;margin-bottom:2.5rem;" class="fu d2">${copy.hero_sub}</p>
         <div style="display:flex;gap:.85rem;flex-wrap:wrap;" class="fu d3">
-          ${phone?`<a href="tel:${cleanPhone(phone)}" style="background:${h};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">📞 ${phone}</a>`:''}
+          ${phone?`<a href="tel:${cleanPhone(phone)}" aria-label="Call ${phone}" style="background:${h};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;"><span aria-hidden="true">📞 </span>${phone}</a>`:''}
           <a href="#services" style="border:1px solid rgba(255,255,255,.2);color:#f5f2ed;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Our Services</a>
         </div>
         <div style="display:flex;gap:3rem;margin-top:3.5rem;padding-top:2.5rem;border-top:1px solid rgba(255,255,255,.07);" class="fu d4">
@@ -545,7 +545,7 @@ function layoutSplit(place, copy, photos, industry) {
         <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,7vw,4.2rem);line-height:.88;letter-spacing:.02em;margin-bottom:1.5rem;color:${textColor};" class="fu d1">${formatHeadline(copy.hero_headline, a)}</h1>
         <p style="font-size:1rem;color:${mutedColor};line-height:1.8;max-width:400px;margin-bottom:2.5rem;" class="fu d2">${copy.hero_sub}</p>
         <div style="display:flex;gap:.85rem;flex-wrap:wrap;" class="fu d3">
-          ${phone?`<a href="tel:${cleanPhone(phone)}" style="background:${a};color:${isDark?'#000':'#fff'};padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">${ctaLabel}</a>`:''}
+          ${phone?`<a href="tel:${cleanPhone(phone)}" aria-label="Call ${phone}" style="background:${a};color:${isDark?'#000':'#fff'};padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">${ctaLabel}</a>`:''}
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,auto);gap:2.5rem;margin-top:3.5rem;padding-top:2.5rem;border-top:1px solid ${isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)'};" class="fu d4">
           <div><div style="font-family:'Bebas Neue',sans-serif;font-size:2.25rem;color:${a};line-height:1;">${rating}★</div><div style="font-size:.6rem;color:${mutedColor};letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Rating</div></div>
@@ -555,7 +555,7 @@ function layoutSplit(place, copy, photos, industry) {
       </div>
       <div style="position:relative;overflow:hidden;" class="mob-hide">
         ${photos.hero
-          ? `<img src="${photos.hero}" alt="${name}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;"/><div style="position:absolute;inset:0;background:linear-gradient(to right,${isDark?'rgba(8,8,15,.65)':'rgba(250,250,248,.3)'} 0%,transparent 30%);"></div>`
+          ? `<img src="${photos.hero}" alt="${name} — hero image" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;"/><div style="position:absolute;inset:0;background:linear-gradient(to right,${isDark?'rgba(8,8,15,.65)':'rgba(250,250,248,.3)'} 0%,transparent 30%);" aria-hidden="true"></div>`
           : `<div style="position:absolute;inset:0;background:${isDark?'#111':'#eee'};"></div>`
         }
       </div>
@@ -591,7 +591,7 @@ function layoutWellness(place, copy, photos, industry) {
       <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,8,6,.92) 0%,rgba(10,8,6,.6) 35%,rgba(10,8,6,.1) 65%,transparent 100%);"></div>
 
       <div style="position:absolute;top:5rem;right:2.5rem;background:rgba(255,255,255,.95);padding:.6rem 1.1rem;border-radius:100px;display:flex;align-items:center;gap:.5rem;z-index:2;">
-        <span style="color:#f59e0b;font-size:.9rem;">${stars(rating)}</span>
+        <span style="color:#f59e0b;font-size:.9rem;" role="img" aria-label="${rating} out of 5 stars, ${reviewCount} reviews">${stars(rating)}</span>
         <span style="font-size:.78rem;font-weight:600;color:#1a1a1a;">${rating} · ${reviewCount} reviews</span>
       </div>
 
@@ -601,7 +601,7 @@ function layoutWellness(place, copy, photos, industry) {
         <p style="font-size:1.05rem;color:rgba(255,255,255,.65);line-height:1.75;max-width:500px;margin-bottom:2rem;" class="fu d2">${copy.hero_sub}</p>
         <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;" class="fu d3">
           <a href="${secureSiteUrl(place.id)}" style="background:${p};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Secure My Site →</a>
-          ${phone?`<a href="tel:${cleanPhone(phone)}" style="border:1px solid rgba(255,255,255,.3);color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">${phone}</a>`:''}
+          ${phone?`<a href="tel:${cleanPhone(phone)}" aria-label="Call ${phone}" style="border:1px solid rgba(255,255,255,.3);color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">${phone}</a>`:''}
         </div>
       </div>
     </section>
@@ -744,15 +744,17 @@ function loadingPage(place_id, layout) {
   </style>
 </head>
 <body>
-  <div class="wordmark">Hello<em>Site</em></div>
-  <p class="tagline">More locals. More walk-ins. More business.</p>
-  <div class="bar-track"><div class="bar-fill"></div></div>
-  <h1>Building your site&hellip;</h1>
-  <p class="sub">Pulling your reviews, photos, and business info</p>
-  <div class="error-box" id="errBox">
-    <p>This is taking longer than expected. Please try refreshing, or come back in a moment.</p>
-    <a href="javascript:location.reload()">Refresh &rarr;</a>
-  </div>
+  <main>
+    <div class="wordmark" aria-label="HelloSite">Hello<em>Site</em></div>
+    <p class="tagline">More locals. More walk-ins. More business.</p>
+    <div class="bar-track" role="progressbar" aria-label="Building your site" aria-valuetext="Building"><div class="bar-fill" aria-hidden="true"></div></div>
+    <h1>Building your site&hellip;</h1>
+    <p class="sub">Pulling your reviews, photos, and business info</p>
+    <div class="error-box" id="errBox" role="status" aria-live="polite">
+      <p>This is taking longer than expected. Please try refreshing, or come back in a moment.</p>
+      <a href="javascript:location.reload()">Refresh &rarr;</a>
+    </div>
+  </main>
   <script>
     var placeId  = ${pid};
     var layout   = ${lay};
@@ -828,14 +830,14 @@ app.get('/demo', async (req, res) => {
         console.log(`✓ ${place.displayName?.text} → ${industry}`);
 
         if (industry === 'unsupported') {
-          demoCache.set(cacheKey, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:auto;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.6;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
+          demoCache.set(cacheKey, `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Coming Soon — HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;margin:0;"><main><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Coming Soon</h1><p style="opacity:.7;max-width:360px;margin:0 auto 1.5rem;line-height:1.7;">We currently support trades, grooming, wellness, pet care, and retail.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;display:inline-block;">Learn More</a></main></body></html>`);
           demoProgress.delete(cacheKey);
           return;
         }
 
         const reviewCount = place.userRatingCount || 0;
         if (reviewCount < 10) {
-          demoCache.set(cacheKey, `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:auto;text-align:center;padding:2rem;"><div><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Not Quite Ready</h1><p style="opacity:.6;max-width:400px;margin:0 auto 1.5rem;line-height:1.7;">This business needs at least 10 Google reviews before we can build a great demo.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;">Learn More</a></div></body></html>`);
+          demoCache.set(cacheKey, `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Not Quite Ready — HelloSite</title></head><body style="font-family:sans-serif;background:#FFF7E8;color:#17324D;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;margin:0;"><main><h1 style="font-size:1.75rem;margin-bottom:.75rem;">Not Quite Ready</h1><p style="opacity:.7;max-width:400px;margin:0 auto 1.5rem;line-height:1.7;">This business needs at least 10 Google reviews before we can build a great demo.</p><a href="https://gethellosite.com" style="background:#17324D;color:#fff;padding:.75rem 1.5rem;border-radius:100px;text-decoration:none;font-weight:600;display:inline-block;">Learn More</a></main></body></html>`);
           demoProgress.delete(cacheKey);
           return;
         }

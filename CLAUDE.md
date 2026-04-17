@@ -130,6 +130,30 @@ Stripe test mode: card `4242 4242 4242 4242` + any future expiry + any CVC.
 
 ---
 
+## Accessibility (WCAG 2.1 AA)
+
+The platform has been audited and updated for AA compliance. Shared patterns applied everywhere:
+
+- **Skip-to-main link** injected as the first focusable element on every page, pointing at `#main`. CSS keeps it off-screen until focused. Defined in `templates.js` `wrapHTML()` for demo templates, inline in `checkout.js`, and globally in `hellosite-marketing/styles/globals.css` for the marketing site.
+- **`:focus-visible` ring** — 3px brand-colored outline with 3px offset. Users get a visible focus only for keyboard interaction (mouse clicks don't trigger it). Same three locations as above.
+- **`<main id="main">` landmark** wraps the primary content on every page, with `<nav>` and `<footer>` as siblings (not children).
+- **`<nav aria-label="...">`** — "Primary" on the top nav, "Footer" on the legal nav, "Mobile" where applicable.
+- **`aria-label` on phone/email links** — screen readers say "Call 310-555-1234" instead of reading the digits one at a time.
+- **Star ratings** get `role="img" aria-label="{rating} out of 5 stars, {count} reviews"` so screen readers announce the meaning, not the unicode stars.
+- **`alt` text on `<img>`** — gallery photos get "{business name} — photo {i} of {total}", hero images get "{business name} — hero image". Decorative elements (icon glyphs, fake browser-dot clusters, overlay gradients) get `aria-hidden="true"`.
+- **Mobile nav toggles** have `aria-label` ("Open menu" / "Close menu"), `aria-expanded={isOpen}`, and `aria-controls` pointing at the dropdown's `id`.
+- **Form inputs** on the marketing site have `<label htmlFor="id">` paired with `id="id"` on the input. Placeholders are decorative only.
+- **FAQ accordions** use `aria-expanded`, `aria-controls`, and `aria-labelledby` to pair questions with their answer regions.
+- **`prefers-reduced-motion`** respected in `globals.css` — collapses animation durations for users who've set that system preference.
+
+## Privacy Policy
+
+Dual-hosted:
+- **Canonical**: `gethellosite.com/privacy-policy` (Next.js file at `hellosite-marketing/pages/privacy-policy.js`)
+- **Stopgap**: `demo.gethellosite.com/privacy-policy` (route in `server.js` on Railway)
+
+Copy is CCPA-compliant, effective April 17, 2026. Contact: `privacy@gethellosite.com`. Footer links added across all 5 main-site pages (`index.js`, `faq.js`, `how-it-works.js`, `pricing.js`, `terms.js`).
+
 ## Session log — April 2026
 
 **Delivered this session:**
@@ -145,3 +169,7 @@ Stripe test mode: card `4242 4242 4242 4242` + any future expiry + any CVC.
 **Regressions we hit and fixed:**
 - `navHTML` calling `secureSiteMailto(place...)` without `place` in scope → threaded `place` through as 5th param.
 - `subscription_data.add_invoice_items` rejected by Stripe → moved setup fee to a second `line_item`.
+
+**Also delivered:**
+5. **Privacy Policy page** on both codebases — canonical Next.js page at `hellosite-marketing/pages/privacy-policy.js`, stopgap Railway route at `demo.gethellosite.com/privacy-policy`. Footer Privacy links added across all 5 main-site pages.
+6. **WCAG 2.1 AA accessibility sweep** across both codebases: skip-to-main links, `<main>` landmarks, visible keyboard focus rings, `aria-label` on nav/phone/email/stars/icon-only buttons, descriptive alt text on every `<img>`, mobile nav toggles with `aria-expanded`/`aria-controls`, form inputs paired with labels via `htmlFor`/`id`, FAQ accordions with proper aria-expanded/controls/labelledby, `prefers-reduced-motion` respected. Loading page and error fallback pages also fixed. Main-site global defaults live in `styles/globals.css`; demo engine defaults live in `templates.js` `wrapHTML()` and `checkout.js`.
