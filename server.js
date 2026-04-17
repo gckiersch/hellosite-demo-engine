@@ -290,7 +290,7 @@ function baseHTML(name, theme, body) {
 }
 
 // ─── SHARED: NAV ─────────────────────────────────────────────────────────────
-function navHTML(shortName, copy, theme, links) {
+function navHTML(shortName, copy, theme, links, place) {
   const isDark = theme === 'dark';
   const bg = isDark ? 'rgba(10,10,10,.97)' : 'rgba(252,251,249,.97)';
   const text = isDark ? '#f5f2ed' : '#1a1a1a';
@@ -483,7 +483,7 @@ function layoutFullBleed(place, copy, photos, industry) {
   const theme = copy.theme || 'dark';
 
   return baseHTML(name, theme, `
-    ${navHTML(shortName, copy, theme, ['Services','Gallery','Reviews','Call Us'])}
+    ${navHTML(shortName, copy, theme, ['Services','Gallery','Reviews','Call Us'], place)}
     <section style="min-height:auto;position:relative;display:flex;align-items:center;">
       ${photos.hero?`<div style="position:absolute;inset:0;background:url('${photos.hero}') center/cover no-repeat;"></div>`:''}
       <div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(5,5,5,.97) 42%,rgba(5,5,5,.5) 75%,rgba(5,5,5,.2) 100%);"></div>
@@ -538,7 +538,7 @@ function layoutSplit(place, copy, photos, industry) {
     : ['Services','Gallery','Reviews', industry === 'pet' ? 'Book' : 'Book'];
 
   return baseHTML(name, theme, `
-    ${navHTML(shortName, copy, theme, navLinks)}
+    ${navHTML(shortName, copy, theme, navLinks, place)}
     <section style="min-height:auto;display:grid;grid-template-columns:1fr 1fr;" class="mob-stack">
       <div style="display:flex;flex-direction:column;justify-content:center;padding:9rem 4rem 5rem 5rem;background:${panelBg};position:relative;z-index:2;" class="mob-pad hero-pad">
         <p style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:${a};margin-bottom:1.25rem;" class="fu">${copy.tagline}</p>
@@ -580,7 +580,7 @@ function layoutWellness(place, copy, photos, industry) {
   const theme = 'light';
 
   return baseHTML(name, theme, `
-    ${navHTML(shortName, copy, theme, ['Services','Gallery','Reviews','Book'])}
+    ${navHTML(shortName, copy, theme, ['Services','Gallery','Reviews','Book'], place)}
 
     <!-- WELLNESS HERO — full bleed, text overlaid at bottom -->
     <section style="min-height:auto;position:relative;display:flex;align-items:flex-end;">
