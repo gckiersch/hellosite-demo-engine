@@ -1047,10 +1047,13 @@ app.post('/api/checkout-session', express.json(), async (req, res) => {
       ui_mode: 'embedded',
       mode: 'subscription',
       client_reference_id: placeId,
-      line_items: [{ price: prices[cadence], quantity: 1 }],
-      // Setup fee is added as a one-time item to the first invoice only.
-      // Top-level param on Checkout Sessions (not inside subscription_data).
-      add_invoice_items: [{ price: prices.setup, quantity: 1 }],
+      // In subscription mode Stripe accepts mixed line_items: one-time
+      // setup fee + recurring subscription. The setup price is billed on
+      // the first invoice alongside the first period.
+      line_items: [
+        { price: prices.setup,    quantity: 1 },
+        { price: prices[cadence], quantity: 1 },
+      ],
       subscription_data: {
         metadata: { place_id: placeId, plan, cadence },
       },
