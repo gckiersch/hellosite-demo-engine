@@ -39,10 +39,36 @@ function bestReview(reviews){
 function galleryStrip(gallery,border){
   if(!gallery?.length)return'';
   const cols=Math.min(gallery.length,3);
-  return`<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:6px;">${gallery.slice(0,3).map(url=>`<div style="height:220px;overflow:hidden;"><img src="${url}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}</div>`;
+  return`
+<style>
+.hs-gstrip-wrap{width:100%;max-width:100%;}
+.hs-gstrip{display:grid;grid-template-columns:repeat(${cols},1fr);gap:6px;width:100%;max-width:100%;}
+.hs-gstrip .hs-gsitem{height:220px;overflow:hidden;position:relative;}
+.hs-gstrip .hs-gsitem img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;}
+.hs-gstrip-dots{display:none;}
+@media(max-width:768px){
+  .hs-gstrip{display:flex;grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 16px;gap:10px;}
+  .hs-gstrip::-webkit-scrollbar{display:none;}
+  .hs-gstrip .hs-gsitem{flex:0 0 86%;height:auto;aspect-ratio:4/3;scroll-snap-align:center;border-radius:6px;}
+  .hs-gstrip-dots{display:flex;justify-content:center;gap:8px;padding:14px 0 4px;}
+  .hs-gstrip-dots span{width:7px;height:7px;border-radius:50%;background:#cbd5e1;transition:background .25s,transform .25s;}
+  .hs-gstrip-dots span.active{background:#334155;transform:scale(1.35);}
+}
+</style>
+<div class="hs-gstrip-wrap">
+<div class="hs-gstrip">${gallery.slice(0,3).map(url=>`<div class="hs-gsitem"><img src="${url}" loading="lazy" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"/></div>`).join('')}</div>
+<div class="hs-gstrip-dots">${gallery.slice(0,3).map((_,i)=>`<span class="${i===0?'active':''}"></span>`).join('')}</div>
+</div>
+<script>(function(){var wraps=document.querySelectorAll('.hs-gstrip-wrap');wraps.forEach(function(w){var scroller=w.querySelector('.hs-gstrip');var items=w.querySelectorAll('.hs-gsitem');var dots=w.querySelectorAll('.hs-gstrip-dots span');if(!scroller||!items.length||!dots.length)return;if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){var best=null,br=0;es.forEach(function(e){if(e.intersectionRatio>br){br=e.intersectionRatio;best=e.target;}});if(best){var i=Array.prototype.indexOf.call(items,best);if(i>=0)dots.forEach(function(d,j){d.classList.toggle('active',j===i);});}},{root:scroller,threshold:[0.25,0.5,0.75]});items.forEach(function(it){io.observe(it);});}});})();</script>`;
 }
 function claimCTA(accent){
   return`<div style="position:fixed;bottom:20px;right:20px;z-index:9999;background:${accent};color:#fff;padding:13px 22px;border-radius:6px;font-size:13px;font-weight:600;letter-spacing:.03em;box-shadow:0 8px 28px ${accent}44;font-family:system-ui,sans-serif;line-height:1.4;text-align:center;max-width:220px;">✦ Reply to the email<br><span style="font-size:11px;opacity:.85;font-weight:400;">to claim this site</span></div>`;
+}
+function secureSiteMailto(name, businessId){
+  const bizId = businessId || 'n/a';
+  const subject = 'Lock in my HelloSite';
+  const body = `Hi Cam,\n\nI'd like to lock in the HelloSite demo you built for ${name || 'my business'}. Please let me know the next steps to make this my official site.\n\nBusiness ID: ${bizId}\n\nThanks!`;
+  return `mailto:Cam@gethellosite.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 const FAVICON = `<link rel="icon" type="image/x-icon" href="https://www.gethellosite.com/favicon.ico">`;
@@ -161,7 +187,7 @@ img{display:block;}
       <a href="#services" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Services</a>
       <a href="#reviews" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Reviews</a>
       <a href="https://www.gethellosite.com/#demo" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Location</a>
-      <a href="https://www.gethellosite.com/#demo" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">See my site</a>
+      <a href="${secureSiteMailto(name, place.id)}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">SECURE MY SITE</a>
       <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">Call Now</a>
     </nav>
   </div>
@@ -319,7 +345,7 @@ function templateWellness(place, copy, photos) {
     </div>
     <div style="display:flex;align-items:center;gap:20px;">
       <span style="font-size:14px;color:${MUTED};" class="mob-hide">${esc(phone)}</span>
-      <a href="https://www.gethellosite.com/#demo" style="background:${ACCENT};color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;">See my site</a>
+      <a href="${secureSiteMailto(name, place.id)}" style="background:${ACCENT};color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;">SECURE MY SITE</a>
     </div>
   </div>
   <div style="position:relative;min-height:540px;display:flex;align-items:flex-end;">
@@ -386,7 +412,7 @@ function templatePet(place, copy, photos) {
       <div style="font-size:21px;font-weight:800;">${esc(name)}</div>
       <div style="font-size:12px;color:${MUTED};margin-top:2px;">${esc(copy.tagline||'')}</div>
     </div>
-    <a href="https://www.gethellosite.com/#demo" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">See my site</a>
+    <a href="${secureSiteMailto(name, place.id)}" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">SECURE MY SITE</a>
   </div>
 
   <div style="padding:52px 32px 42px;max-width:860px;margin:0 auto;" class="mob-pad hero-pad">
@@ -595,4 +621,5 @@ module.exports = {
   templatePet,
   templateRetail,
   templateRealEstate,
+  secureSiteMailto,
 };

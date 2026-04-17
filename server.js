@@ -6,7 +6,9 @@ const {
   templatePet,
   templateRetail,
   templateRealEstate,
+  secureSiteMailto,
 } = require('./templates');
+const { renderCheckout } = require('./checkout');
 const app = express();
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
@@ -160,10 +162,12 @@ async function classifyPhotosWithOverride(photoUrls, industry, placeId) {
 
 // ─── FETCH PLACE ─────────────────────────────────────────────────────────────
 async function getPlaceDetails(placeId) {
-  const fields = ['displayName','formattedAddress','nationalPhoneNumber','regularOpeningHours','rating','userRatingCount','reviews','photos','primaryTypeDisplayName','types','editorialSummary'].join(',');
+  const fields = ['id','displayName','formattedAddress','nationalPhoneNumber','regularOpeningHours','rating','userRatingCount','reviews','photos','primaryTypeDisplayName','types','editorialSummary'].join(',');
   const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}?fields=${fields}&key=${GOOGLE_API_KEY}`);
   if (!res.ok) throw new Error(`Places API error: ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  data.id = data.id || placeId; // ensure business ID is always available to templates
+  return data;
 }
 
 function getPhotoUrl(photoName, maxWidth = 1400) {
@@ -298,7 +302,7 @@ function navHTML(shortName, copy, theme, links) {
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.06em;color:${text};">${shortName}</div>
     <ul style="display:flex;gap:2rem;list-style:none;align-items:center;" class="mob-hide">
       ${links.map((l,i) => i===links.length-1
-        ? `<li><a href="https://www.gethellosite.com/#demo" style="background:${h};color:${btnColor};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">See my site</a></li>`
+        ? `<li><a href="${secureSiteMailto(place.displayName?.text, place.id)}" style="background:${h};color:${btnColor};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Secure My Site</a></li>`
         : `<li><a href="#${l.toLowerCase().replace(/\s/g,'')}" style="color:${muted};text-decoration:none;font-size:.73rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;">${l}</a></li>`
       ).join('')}
     </ul>
@@ -596,7 +600,7 @@ function layoutWellness(place, copy, photos, industry) {
         <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.0;letter-spacing:-.02em;color:#fff;margin-bottom:1.25rem;" class="fu d1">${copy.hero_headline.replace(/\\n|\n/g,'<br>')}</h1>
         <p style="font-size:1.05rem;color:rgba(255,255,255,.65);line-height:1.75;max-width:500px;margin-bottom:2rem;" class="fu d2">${copy.hero_sub}</p>
         <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;" class="fu d3">
-          <a href="https://www.gethellosite.com/#demo" style="background:${p};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">See my site →</a>
+          <a href="${secureSiteMailto(place.displayName?.text, place.id)}" style="background:${p};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Secure My Site →</a>
           ${phone?`<a href="tel:${cleanPhone(phone)}" style="border:1px solid rgba(255,255,255,.3);color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">${phone}</a>`:''}
         </div>
       </div>
@@ -984,6 +988,87 @@ app.post('/api/domain-dns', express.json(), async (req, res) => {
     console.error('domain-dns error:', err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// ─── CHECKOUT PAGE ───────────────────────────────────────────────────────────
+// GET /secure/:placeId — renders the self-serve checkout page for a business.
+app.get('/secure/:placeId', async (req, res) => {
+  try {
+    const place = await getPlaceDetails(req.params.placeId);
+    res.send(renderCheckout(place, { demoOrigin: `https://${req.get('host') || 'demo.gethellosite.com'}` }));
+  } catch (err) {
+    console.error('checkout page error:', err);
+    res.status(500).send('Unable to load checkout. Please try again in a moment.');
+  }
+});
+
+// ─── STRIPE EMBEDDED CHECKOUT ────────────────────────────────────────────────
+// Lazy-load Stripe so the app still boots if the secret key isn't set yet.
+let _stripeClient = null;
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) return null;
+  if (!_stripeClient) _stripeClient = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  return _stripeClient;
+}
+
+// Price IDs hardcoded here — these are public Stripe identifiers (not secrets),
+// and living in source keeps Railway config lean. To change pricing, update
+// Prices in the Stripe dashboard and swap the IDs below.
+const CHECKOUT_PRICE_MAP = {
+  starter: {
+    setup:   'price_1TIFgRJZ1Zjs5qlK6h4ch4cE',  // $99 one-time
+    monthly: 'price_1TIDiIJZ1Zjs5qlKVU9jTcGR',  // $25/mo recurring
+    annual:  'price_1TIDk3JZ1Zjs5qlKGEB5Xf0i',  // $240/yr recurring
+  },
+  executive: {
+    setup:   'price_1TIFgoJZ1Zjs5qlK4YI7Wheq',  // $249 one-time
+    monthly: 'price_1TIDicJZ1Zjs5qlKhAAulL1O',  // $75/mo recurring
+    annual:  'price_1TIDjNJZ1Zjs5qlKvZrTYVM0',  // $720/yr recurring
+  }
+};
+
+// POST /api/checkout-session — creates an embedded Stripe Checkout Session.
+// Returns { clientSecret } that the frontend mounts via Stripe.js.
+// Returns 503 with a friendly message if STRIPE_SECRET_KEY isn't set yet.
+app.post('/api/checkout-session', express.json(), async (req, res) => {
+  try {
+    const stripe = getStripe();
+    if (!stripe) {
+      return res.status(503).json({ error: 'Checkout is not yet configured. Email cam@gethellosite.com to purchase.' });
+    }
+    const { placeId, plan, cadence } = req.body || {};
+    if (!placeId || !plan || !cadence) return res.status(400).json({ error: 'Missing placeId, plan, or cadence.' });
+    const prices = CHECKOUT_PRICE_MAP[plan];
+    if (!prices || !prices[cadence] || !prices.setup) {
+      return res.status(400).json({ error: 'Selected plan is unavailable. Please try another or contact support.' });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      ui_mode: 'embedded',
+      mode: 'subscription',
+      client_reference_id: placeId,
+      line_items: [{ price: prices[cadence], quantity: 1 }],
+      subscription_data: {
+        // Setup fee is added as a one-time item to the first invoice only.
+        add_invoice_items: [{ price: prices.setup, quantity: 1 }],
+        metadata: { place_id: placeId, plan, cadence },
+      },
+      metadata: { place_id: placeId, plan, cadence },
+      redirect_on_completion: 'if_required',
+      return_url: `https://${req.get('host') || 'demo.gethellosite.com'}/checkout-complete?session_id={CHECKOUT_SESSION_ID}`,
+    });
+
+    res.json({ clientSecret: session.client_secret });
+  } catch (err) {
+    console.error('checkout-session error:', err);
+    res.status(500).json({ error: err.message || 'Unable to create checkout session.' });
+  }
+});
+
+// GET /checkout-complete — fallback landing for 3DS edge cases where Stripe
+// redirects. Normal flow stays on the embedded page via onComplete handler.
+app.get('/checkout-complete', async (req, res) => {
+  res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Payment received — HelloSite</title><style>body{background:#FFF7E8;color:#17324D;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;margin:0;}div{max-width:460px;}h1{font-size:1.75rem;margin:0 0 .75rem;}p{opacity:.7;line-height:1.7;margin:0 0 1.5rem;}a{display:inline-block;background:#17324D;color:#fff;padding:.85rem 1.6rem;border-radius:100px;text-decoration:none;font-weight:600;font-size:.95rem;}</style></head><body><div><h1>Payment received — welcome aboard!</h1><p>Check your inbox in the next few minutes. We'll email your domain options and a short onboarding form. Your site will be live within 24 hours of finishing that.</p><a href="https://www.gethellosite.com">Back to HelloSite →</a></div></body></html>`);
 });
 
 const PORT = process.env.PORT || 3000;
