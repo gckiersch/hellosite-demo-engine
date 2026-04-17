@@ -6,7 +6,7 @@ const {
   templatePet,
   templateRetail,
   templateRealEstate,
-  secureSiteMailto,
+  secureSiteUrl,
 } = require('./templates');
 const { renderCheckout } = require('./checkout');
 const app = express();
@@ -302,7 +302,7 @@ function navHTML(shortName, copy, theme, links, place) {
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.06em;color:${text};">${shortName}</div>
     <ul style="display:flex;gap:2rem;list-style:none;align-items:center;" class="mob-hide">
       ${links.map((l,i) => i===links.length-1
-        ? `<li><a href="${secureSiteMailto(place.displayName?.text, place.id)}" style="background:${h};color:${btnColor};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Secure My Site</a></li>`
+        ? `<li><a href="${secureSiteUrl(place.id)}" style="background:${h};color:${btnColor};padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Secure My Site</a></li>`
         : `<li><a href="#${l.toLowerCase().replace(/\s/g,'')}" style="color:${muted};text-decoration:none;font-size:.73rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;">${l}</a></li>`
       ).join('')}
     </ul>
@@ -565,7 +565,7 @@ function layoutSplit(place, copy, photos, industry) {
     ${reviewsHTML(reviews, rating, reviewCount, a, theme)}
     ${contactHTML(copy, place, a, h, theme)}
     ${footerHTML(shortName, address, phone, theme, a)}
-    <div style="position:fixed;bottom:20px;right:20px;z-index:9999;background:${a};color:${isDark?'#000':'#fff'};padding:13px 22px;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:.03em;box-shadow:0 8px 28px ${a}44;font-family:system-ui,sans-serif;line-height:1.4;text-align:center;max-width:220px;">✦ Reply to the email<br><span style="font-size:11px;opacity:.85;font-weight:400;">to claim this site</span></div>
+    <a href="${secureSiteUrl(place.id)}" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:${a};color:${isDark?'#000':'#fff'};padding:13px 22px;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:.03em;box-shadow:0 8px 28px ${a}44;font-family:system-ui,sans-serif;line-height:1.4;text-align:center;max-width:220px;text-decoration:none;">✦ Launch your site<br><span style="font-size:11px;opacity:.85;font-weight:400;">Live in 24 hours</span></a>
   `);
 }
 
@@ -600,7 +600,7 @@ function layoutWellness(place, copy, photos, industry) {
         <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.0;letter-spacing:-.02em;color:#fff;margin-bottom:1.25rem;" class="fu d1">${copy.hero_headline.replace(/\\n|\n/g,'<br>')}</h1>
         <p style="font-size:1.05rem;color:rgba(255,255,255,.65);line-height:1.75;max-width:500px;margin-bottom:2rem;" class="fu d2">${copy.hero_sub}</p>
         <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;" class="fu d3">
-          <a href="${secureSiteMailto(place.displayName?.text, place.id)}" style="background:${p};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Secure My Site →</a>
+          <a href="${secureSiteUrl(place.id)}" style="background:${p};color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">Secure My Site →</a>
           ${phone?`<a href="tel:${cleanPhone(phone)}" style="border:1px solid rgba(255,255,255,.3);color:#fff;padding:.9rem 2rem;text-decoration:none;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;">${phone}</a>`:''}
         </div>
       </div>

@@ -61,14 +61,11 @@ function galleryStrip(gallery,border){
 </div>
 <script>(function(){var wraps=document.querySelectorAll('.hs-gstrip-wrap');wraps.forEach(function(w){var scroller=w.querySelector('.hs-gstrip');var items=w.querySelectorAll('.hs-gsitem');var dots=w.querySelectorAll('.hs-gstrip-dots span');if(!scroller||!items.length||!dots.length)return;if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){var best=null,br=0;es.forEach(function(e){if(e.intersectionRatio>br){br=e.intersectionRatio;best=e.target;}});if(best){var i=Array.prototype.indexOf.call(items,best);if(i>=0)dots.forEach(function(d,j){d.classList.toggle('active',j===i);});}},{root:scroller,threshold:[0.25,0.5,0.75]});items.forEach(function(it){io.observe(it);});}});})();</script>`;
 }
-function claimCTA(accent){
-  return`<div style="position:fixed;bottom:20px;right:20px;z-index:9999;background:${accent};color:#fff;padding:13px 22px;border-radius:6px;font-size:13px;font-weight:600;letter-spacing:.03em;box-shadow:0 8px 28px ${accent}44;font-family:system-ui,sans-serif;line-height:1.4;text-align:center;max-width:220px;">✦ Reply to the email<br><span style="font-size:11px;opacity:.85;font-weight:400;">to claim this site</span></div>`;
+function secureSiteUrl(businessId){
+  return `https://demo.gethellosite.com/secure/${encodeURIComponent(businessId || '')}`;
 }
-function secureSiteMailto(name, businessId){
-  const bizId = businessId || 'n/a';
-  const subject = 'Lock in my HelloSite';
-  const body = `Hi Cam,\n\nI'd like to lock in the HelloSite demo you built for ${name || 'my business'}. Please let me know the next steps to make this my official site.\n\nBusiness ID: ${bizId}\n\nThanks!`;
-  return `mailto:Cam@gethellosite.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+function claimCTA(accent, businessId){
+  return`<a href="${secureSiteUrl(businessId)}" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:${accent};color:#fff;padding:13px 22px;border-radius:6px;font-size:13px;font-weight:600;letter-spacing:.03em;box-shadow:0 8px 28px ${accent}44;font-family:system-ui,sans-serif;line-height:1.4;text-align:center;max-width:220px;text-decoration:none;">✦ Launch your site<br><span style="font-size:11px;opacity:.85;font-weight:400;">Live in 24 hours</span></a>`;
 }
 
 const FAVICON = `<link rel="icon" type="image/x-icon" href="https://www.gethellosite.com/favicon.ico">`;
@@ -187,7 +184,7 @@ img{display:block;}
       <a href="#services" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Services</a>
       <a href="#reviews" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Reviews</a>
       <a href="https://www.gethellosite.com/#demo" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Location</a>
-      <a href="${secureSiteMailto(name, place.id)}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">SECURE MY SITE</a>
+      <a href="${secureSiteUrl(place.id)}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">SECURE MY SITE</a>
       <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">Call Now</a>
     </nav>
   </div>
@@ -239,7 +236,7 @@ ${gallHTML}
   <div style="display:flex;gap:16px;"><a href="${mapsUrl}" target="_blank" style="color:${MUTED};font-size:12px;" onmouseover="this.style.color='${ACCENT}'" onmouseout="this.style.color='${MUTED}'">Google Maps</a><a href="tel:${cp}" style="color:${MUTED};font-size:12px;" onmouseover="this.style.color='${ACCENT}'" onmouseout="this.style.color='${MUTED}'">${esc(phone)}</a></div>
   <div style="font-size:10px;color:#CBD5E1;">A HelloSite · GetHelloSite.com</div>
 </footer>
-${claimCTA(ACCENT)}
+${claimCTA(ACCENT, place.id)}
 </body></html>`;
 }
 
@@ -321,7 +318,7 @@ function templateGrooming(place, copy, photos) {
     <div style="margin-top:20px;font-size:10px;color:#CBD5E1;font-family:'Outfit',sans-serif;letter-spacing:.05em;">A HelloSite · GetHelloSite.com</div>
   </div>
 
-  ${claimCTA(ACCENT)}`);
+  ${claimCTA(ACCENT, place.id)}`);
 }
 
 
@@ -345,7 +342,7 @@ function templateWellness(place, copy, photos) {
     </div>
     <div style="display:flex;align-items:center;gap:20px;">
       <span style="font-size:14px;color:${MUTED};" class="mob-hide">${esc(phone)}</span>
-      <a href="${secureSiteMailto(name, place.id)}" style="background:${ACCENT};color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;">SECURE MY SITE</a>
+      <a href="${secureSiteUrl(place.id)}" style="background:${ACCENT};color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;">SECURE MY SITE</a>
     </div>
   </div>
   <div style="position:relative;min-height:540px;display:flex;align-items:flex-end;">
@@ -383,7 +380,7 @@ function templateWellness(place, copy, photos) {
       <div><p style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:700;color:${TEXT};margin-bottom:9px;">Call or Text</p><a href="tel:${cleanPhone(phone)}" style="font-size:19px;font-weight:700;color:${ACCENT};">${esc(phone)}</a><div style="margin-top:16px;font-size:10px;color:#CBD5E1;">A HelloSite · GetHelloSite.com</div></div>
     </div>
   </div>
-  ${claimCTA(ACCENT)}`);
+  ${claimCTA(ACCENT, place.id)}`);
 }
 
 
@@ -412,7 +409,7 @@ function templatePet(place, copy, photos) {
       <div style="font-size:21px;font-weight:800;">${esc(name)}</div>
       <div style="font-size:12px;color:${MUTED};margin-top:2px;">${esc(copy.tagline||'')}</div>
     </div>
-    <a href="${secureSiteMailto(name, place.id)}" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">SECURE MY SITE</a>
+    <a href="${secureSiteUrl(place.id)}" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">SECURE MY SITE</a>
   </div>
 
   <div style="padding:52px 32px 42px;max-width:860px;margin:0 auto;" class="mob-pad hero-pad">
@@ -459,7 +456,7 @@ function templatePet(place, copy, photos) {
     </div>
   </div>
 
-  ${claimCTA(ACCENT)}`);
+  ${claimCTA(ACCENT, place.id)}`);
 }
 
 
@@ -546,7 +543,7 @@ function templateRetail(place, copy, photos) {
     </div>
   </div>
 
-  ${claimCTA(ACCENT)}`);
+  ${claimCTA(ACCENT, place.id)}`);
 }
 
 
@@ -608,7 +605,7 @@ function templateRealEstate(place, copy, photos) {
       <div><p style="font-family:'Libre Baskerville',serif;font-size:11px;font-weight:700;color:${ACCENT};letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Direct Line</p><a href="tel:${cleanPhone(phone)}" style="font-family:'Libre Baskerville',serif;font-size:20px;font-weight:700;color:${ACCENT};">${esc(phone)}</a><div style="margin-top:16px;font-size:10px;color:#CBD5E1;">A HelloSite · GetHelloSite.com</div></div>
     </div>
   </div>
-  ${claimCTA(ACCENT)}`);
+  ${claimCTA(ACCENT, place.id)}`);
 }
 
 
@@ -621,5 +618,5 @@ module.exports = {
   templatePet,
   templateRetail,
   templateRealEstate,
-  secureSiteMailto,
+  secureSiteUrl,
 };
