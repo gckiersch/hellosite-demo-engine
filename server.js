@@ -1048,9 +1048,10 @@ app.post('/api/checkout-session', express.json(), async (req, res) => {
       mode: 'subscription',
       client_reference_id: placeId,
       line_items: [{ price: prices[cadence], quantity: 1 }],
+      // Setup fee is added as a one-time item to the first invoice only.
+      // Top-level param on Checkout Sessions (not inside subscription_data).
+      add_invoice_items: [{ price: prices.setup, quantity: 1 }],
       subscription_data: {
-        // Setup fee is added as a one-time item to the first invoice only.
-        add_invoice_items: [{ price: prices.setup, quantity: 1 }],
         metadata: { place_id: placeId, plan, cadence },
       },
       metadata: { place_id: placeId, plan, cadence },
