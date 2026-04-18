@@ -665,6 +665,15 @@ function loadingPage(place_id, layout) {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       color: #fff;
       gap: 0;
+      margin: 0;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      width: 100%;
     }
     .wordmark {
       font-size: 1.35rem;
