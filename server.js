@@ -1107,26 +1107,50 @@ const CHECKOUT_PRICE_MAP = {
   }
 };
 
+// CORS for cross-origin checkout (gethellosite.com → demo.gethellosite.com)
+const CHECKOUT_ALLOWED_ORIGINS = new Set([
+  'https://www.gethellosite.com',
+  'https://gethellosite.com',
+  'https://demo.gethellosite.com',
+]);
+function applyCheckoutCors(req, res, next) {
+  const origin = req.headers.origin;
+  if (CHECKOUT_ALLOWED_ORIGINS.has(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+  }
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+}
+app.options('/api/checkout-session', applyCheckoutCors);
+
 // POST /api/checkout-session — creates an embedded Stripe Checkout Session.
+// Supports two payload shapes:
+//   1. Demo-originated: { placeId, plan, cadence } — tags session with
+//      client_reference_id = placeId so n8n matches an existing Airtable lead.
+//   2. Home-originated:  { businessName, city, email, plan, cadence } — no
+//      place_id yet, so session metadata carries business info and n8n
+//      creates a NEW Airtable lead on webhook.
 // Returns { clientSecret } that the frontend mounts via Stripe.js.
 // Returns 503 with a friendly message if STRIPE_SECRET_KEY isn't set yet.
-app.post('/api/checkout-session', express.json(), async (req, res) => {
+app.post('/api/checkout-session', applyCheckoutCors, express.json(), async (req, res) => {
   try {
     const stripe = getStripe();
     if (!stripe) {
       return res.status(503).json({ error: 'Checkout is not yet configured. Email cam@gethellosite.com to purchase.' });
     }
-    const { placeId, plan, cadence } = req.body || {};
-    if (!placeId || !plan || !cadence) return res.status(400).json({ error: 'Missing placeId, plan, or cadence.' });
+    const { placeId, plan, cadence, businessName, city, email } = req.body || {};
+    if (!plan || !cadence) return res.status(400).json({ error: 'Missing plan or cadence.' });
     const prices = CHECKOUT_PRICE_MAP[plan];
     if (!prices || !prices[cadence] || !prices.setup) {
       return res.status(400).json({ error: 'Selected plan is unavailable. Please try another or contact support.' });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig = {
       ui_mode: 'embedded',
       mode: 'subscription',
-      client_reference_id: placeId,
       // In subscription mode Stripe accepts mixed line_items: one-time
       // setup fee + recurring subscription. The setup price is billed on
       // the first invoice alongside the first period.
@@ -1134,14 +1158,35 @@ app.post('/api/checkout-session', express.json(), async (req, res) => {
         { price: prices.setup,    quantity: 1 },
         { price: prices[cadence], quantity: 1 },
       ],
-      subscription_data: {
-        metadata: { place_id: placeId, plan, cadence },
-      },
-      metadata: { place_id: placeId, plan, cadence },
       redirect_on_completion: 'if_required',
       return_url: `https://${req.get('host') || 'demo.gethellosite.com'}/checkout-complete?session_id={CHECKOUT_SESSION_ID}`,
-    });
+    };
 
+    if (placeId) {
+      // Demo-originated: tag with place_id for n8n matching
+      const meta = { place_id: placeId, plan, cadence, source: 'demo-page' };
+      sessionConfig.client_reference_id = placeId;
+      sessionConfig.subscription_data = { metadata: meta };
+      sessionConfig.metadata = meta;
+    } else if (businessName && city) {
+      // Home-originated: no place_id; metadata carries biz info for n8n to
+      // create a new Airtable lead on checkout.session.completed.
+      const meta = {
+        business_name: businessName,
+        city,
+        email: email || '',
+        plan,
+        cadence,
+        source: 'home-page',
+      };
+      sessionConfig.subscription_data = { metadata: meta };
+      sessionConfig.metadata = meta;
+      if (email) sessionConfig.customer_email = email;
+    } else {
+      return res.status(400).json({ error: 'Missing placeId or businessName+city.' });
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
     res.json({ clientSecret: session.client_secret });
   } catch (err) {
     console.error('checkout-session error:', err);

@@ -69,7 +69,13 @@ Pulled from the loading page and error pages in `server.js`:
 - `ui_mode: 'embedded'` + `redirect_on_completion: 'if_required'` — buyer stays on page
 - `mode: 'subscription'`
 - `line_items` is an array of TWO: setup + recurring (mixed one-time + recurring works in subscription mode)
-- `client_reference_id: placeId` and `metadata.place_id: placeId` — both set for webhook matching
+- `client_reference_id: placeId` and `metadata.place_id: placeId` — both set for webhook matching (when originating from a demo page)
+
+**Two payload shapes supported on `/api/checkout-session`:**
+1. **Demo-originated** — `{ placeId, plan, cadence }`. Session gets `client_reference_id: placeId` + `metadata.place_id`, `metadata.source: 'demo-page'`. n8n matches an existing Airtable lead by place_id.
+2. **Home-originated** — `{ businessName, city, email, plan, cadence }`. Session has NO client_reference_id; metadata carries `business_name`, `city`, `email`, `source: 'home-page'`. n8n must CREATE a new Airtable lead from this metadata (see n8n notes in `hellosite-marketing/CLAUDE.md`).
+
+**CORS** — `/api/checkout-session` emits `Access-Control-Allow-Origin` for `https://www.gethellosite.com`, `https://gethellosite.com`, and `https://demo.gethellosite.com` so the Vercel home page can POST cross-origin to this Railway endpoint.
 
 ---
 
