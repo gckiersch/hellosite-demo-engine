@@ -102,7 +102,7 @@ img{display:block;max-width:100%;}
 .tagline strong{color:${ACCENT};font-weight:700;}
 .hero h1{font-weight:800;line-height:1.04;letter-spacing:-.02em;margin-bottom:22px;color:${ACCENT};}
 .hero h1 .l1{display:block;white-space:nowrap;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:${MUTED};margin-bottom:16px;}
-.hero h1 em{font-style:italic;font-weight:800;color:${BRAND_BLUE};display:block;font-size:clamp(3rem,6.8vw,5.2rem);line-height:1.02;letter-spacing:-.025em;}
+.hero h1 em{font-style:normal;font-weight:800;color:${BRAND_BLUE};display:block;font-size:clamp(3rem,6.8vw,5.2rem);line-height:1.02;letter-spacing:-.025em;}
 .hero h1 .accent{color:${ACCENT};}
 .hero-sub{font-size:17px;color:${MUTED};margin-bottom:28px;max-width:520px;}
 .hero-cta{display:flex;gap:12px;flex-wrap:wrap;}
