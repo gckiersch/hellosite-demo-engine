@@ -1,11 +1,10 @@
 const express = require('express');
 const {
-  templateTrades,
-  templateGrooming,
-  templateWellness,
-  templatePet,
-  templateRetail,
-  templateRealEstate,
+  templateBold,
+  templateMinimalist,
+  templateTransactional,
+  templateInformative,
+  getTemplate,
   secureSiteUrl,
 } = require('./templates');
 const { renderCheckout } = require('./checkout');
@@ -858,10 +857,20 @@ app.get('/demo', async (req, res) => {
         ]);
 
         if (booking_url) copy.booking_url = booking_url;
-        const html = renderDemo(place, copy, photos, industry, layout);
+
+        // Determine theme from Google Place types (template_refactor 2026-04)
+        const theme = getTemplate(place.types || []);
+        const TEMPLATE_FNS = {
+          bold:          templateBold,
+          minimalist:    templateMinimalist,
+          transactional: templateTransactional,
+          informative:   templateInformative,
+        };
+        const html = TEMPLATE_FNS[theme](place, copy, photos);
+
         demoCache.set(cacheKey, html);
         demoProgress.delete(cacheKey);
-        console.log(`✓ Done — ${industry} / ${layout||defaultLayouts[industry]}`);
+        console.log(`✓ Done — ${industry} → ${theme}`);
 
       } catch (err) {
         console.error(err);

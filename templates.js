@@ -1,12 +1,15 @@
 /**
- * HelloSite — Demo Templates (Final)
+ * HelloSite — Demo Templates (Refactor 2026-04)
  *
- * Trades:      New layout  · White #FFFFFF    · Navy #1B3A6B
- * Grooming:    Orig layout · White #FFFFFF    · Near-black #2C2C2C
- * Wellness:    New layout  · White #FFFFFF    · Sage #6B7C5A
- * Pet:         Orig layout · White #FFFFFF    · Royal Blue #2B5FC7
- * Retail:      Orig layout · White #FFFFFF    · Burgundy #9B3054
- * Real Estate: New layout  · White #FFFFFF    · Navy #1B3A6B
+ * 4 personality templates, selected by Google Place types:
+ *   Transactional · Accent #E8440A · Barbers, salons, nail/lash, pet groomers
+ *   Bold          · Accent #17324D · Plumbers, electricians, contractors, auto
+ *   Minimalist    · Accent #6B7C5A · Spas, massage, wellness
+ *   Informative   · Accent #1D4ED8 · Accountants, lawyers, insurance, real estate
+ *
+ * All templates: Plus Jakarta Sans, mobile-first 390px, IntersectionObserver only.
+ * Data is strictly from Google Places + Claude-generated copy. Never prices, slots,
+ * staff names, or founded year.
  */
 'use strict';
 
@@ -115,518 +118,1518 @@ ${body}
 }
 
 
+// ─── PRIVATE HELPERS (template-internal) ──────────────────────────────────────
+
+// Accept legacy copy shape (services:[str], service_descs:[str]) AND
+// new shape (services:[{name, desc}]). Returns [{name, desc}, ...] capped at 6.
+function _normalizeServices(copy) {
+  if (!copy || !Array.isArray(copy.services)) return [];
+  const descs = Array.isArray(copy.service_descs) ? copy.service_descs : [];
+  return copy.services.slice(0, 6).map((s, i) => {
+    if (typeof s === 'string') return { name: s, desc: descs[i] || '' };
+    return { name: s?.name || '', desc: s?.desc || '' };
+  }).filter(s => s.name);
+}
+
+// Build hours rows. Google's weekdayDescriptions is Mon-first.
+// JS Date.getDay(): 0=Sun..6=Sat → today index = (d===0?6:d-1).
+function _formatHoursRows(weekdayDescriptions) {
+  const d = new Date().getDay();
+  const todayIdx = d === 0 ? 6 : d - 1;
+  return (weekdayDescriptions || []).map((line, i) => {
+    const c = line.indexOf(':');
+    const day = c > -1 ? line.slice(0, c) : line;
+    const time = c > -1 ? line.slice(c + 1).trim() : '';
+    const isClosed = /closed/i.test(time);
+    return { day, time, isClosed, isToday: i === todayIdx };
+  });
+}
+
+// Pull a likely "city" from the formatted address. Falls back to address.
+function _city(address) {
+  if (!address) return '';
+  // "892 S Main St, Akron, OH 44311, USA" → "Akron, OH"
+  const parts = address.split(',').map(s => s.trim()).filter(Boolean);
+  if (parts.length >= 3) {
+    const city = parts[parts.length - 3];
+    const state = (parts[parts.length - 2] || '').split(' ')[0];
+    return state ? `${city}, ${state}` : city;
+  }
+  return parts[0] || address;
+}
+
+// Pad gallery to N slots, reusing earlier photos rather than empty blocks.
+function _padPhotos(gallery, n) {
+  const arr = Array.isArray(gallery) ? gallery.filter(Boolean) : [];
+  if (!arr.length) return [];
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(arr[i] || arr[i % arr.length]);
+  return out;
+}
+
+// Fonts URL shared across the 4 templates (Plus Jakarta Sans).
+const _FONTS = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap';
+
+
 // ═══════════════════════════════════════════════════════════════════════════════
-// 1. TRADES — New layout · White · Navy #1B3A6B
+// 1. TRANSACTIONAL  ·  Accent #E8440A
+//    Barbers, hair/nail/lash, pet groomers — appointment-driven service businesses.
+//    Source: template_transactional_v2.html
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function templateTrades(place, copy, photos) {
-  const {name,shortName,phone,address,rating,reviewCount,reviews} = extractPlaceData(place);
+function templateTransactional(place, copy, photos) {
+  const { name, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
   const allHours = place.regularOpeningHours?.weekdayDescriptions || [];
-  const review = bestReview(reviews);
-  const services = copy.services || [];
-  const descs = copy.service_descs || [];
+  const review   = bestReview(reviews);
+  const services = _normalizeServices(copy);
+  const tagline  = (copy && copy.tagline) || `${_city(address) || 'Local'} neighborhood service`;
+  const cp       = cleanPhone(phone);
+  const cityStr  = _city(address);
+  const heroAlt  = `${esc(name)} interior`;
+  const mapsUrl  = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
+  const hoursRows = _formatHoursRows(allHours);
+  const heroImg  = photos?.hero || (photos?.gallery && photos.gallery[0]) || '';
+  const gallery  = _padPhotos((photos && photos.gallery) || [], 4);
+  const ratingTxt = rating.toFixed(1);
 
-  const BG='#FFFFFF',SURFACE='#F4F6F8',ACCENT='#1B3A6B';
-  const TEXT='#111827',MUTED='#6B7280',BORDER='#E5E7EB';
-  const cp=cleanPhone(phone);
-  const mapsUrl=`https://maps.google.com/?q=${encodeURIComponent(address)}`;
+  const servicesHTML = services.length ? `
+<section class="services" aria-labelledby="services-title">
+  <div class="container">
+    <p class="section-eyebrow">The menu</p>
+    <h2 class="section-title" id="services-title">What we do.</h2>
+    <ul class="service-list" role="list">
+      ${services.map((s, i) => `
+      <li class="service-item">
+        <span class="service-num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
+        <div>
+          <div class="service-name">${esc(s.name)}</div>
+          ${s.desc ? `<div class="service-desc">${esc(s.desc)}</div>` : ''}
+        </div>
+      </li>`).join('')}
+    </ul>
+  </div>
+</section>` : '';
 
-  const hoursRows=allHours.map(h=>{
-    const i=h.indexOf(':');
-    const day=i>-1?h.slice(0,i):h;
-    const time=i>-1?h.slice(i+1).trim():'';
-    const closed=time.toLowerCase().includes('closed');
-    return`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid ${BORDER};"><span style="font-size:13px;color:${MUTED};">${esc(day)}</span><span style="font-size:13px;color:${closed?MUTED:TEXT};font-weight:600;">${esc(time)||'Closed'}</span></div>`;
-  }).join('');
+  const galleryHTML = gallery.length ? `
+<section class="gallery" aria-labelledby="gallery-title">
+  <div class="container" style="margin-bottom:20px;">
+    <p class="section-eyebrow">The work</p>
+    <h2 class="section-title" id="gallery-title">See it for yourself.</h2>
+  </div>
+  <div class="gallery-scroll" role="region" aria-label="${esc(name)} photo gallery">
+    ${gallery.map((u, i) => `<div class="gallery-item"><img src="${u}" alt="${esc(name)} photo ${i + 1}" loading="lazy" decoding="async"></div>`).join('')}
+  </div>
+  <div class="gallery-dots" aria-hidden="true">
+    ${gallery.map((_, i) => `<div class="gallery-dot${i === 0 ? ' active' : ''}"></div>`).join('')}
+  </div>
+</section>` : '';
 
-  const gImgs=(photos.gallery||[]).slice(0,4);
-  const gallHTML=gImgs.length>=4
-    ?`<div style="display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:auto auto;gap:6px;" class="mob-hide"><div style="grid-row:1/3;overflow:hidden;max-height:440px;"><img src="${gImgs[0]}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>${gImgs.slice(1).map(u=>`<div style="overflow:hidden;height:215px;"><img src="${u}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`).join('')}</div>`
-    :gImgs.length>0?`<div style="display:grid;grid-template-columns:repeat(${gImgs.length},1fr);gap:6px;">${gImgs.map(u=>`<div style="height:220px;overflow:hidden;"><img src="${u}" loading="lazy" style="width:100%;height:100%;object-fit:cover;"/></div>`).join('')}</div>`:'';
+  const reviewHTML = review.text ? `
+<section class="review" aria-labelledby="review-title">
+  <div class="container">
+    <div class="review-divider" aria-hidden="true"></div>
+    <div class="review-stars" aria-label="${review.rating} stars">${stars(review.rating)}</div>
+    <blockquote>
+      <p class="review-quote" id="review-title">"${esc(review.text)}"</p>
+      <footer class="review-author"><cite>— ${esc(review.author)}</cite></footer>
+    </blockquote>
+  </div>
+</section>` : '';
 
-  return`<!DOCTYPE html>
+  const hoursHTML = hoursRows.length ? `
+<div>
+  <h3 class="hours-title">Hours</h3>
+  <ul class="hours-list" aria-label="Business hours">
+    ${hoursRows.map(r => `
+    <li class="hours-row${r.isToday ? ' today' : ''}">
+      <span class="hours-day">${esc(r.day)}</span>
+      <span class="hours-time${r.isClosed ? ' closed' : ''}${r.isToday ? ' today' : ''}">${esc(r.time) || 'Closed'}</span>
+    </li>`).join('')}
+  </ul>
+</div>` : '';
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="${esc(name)} — ${esc(tagline)}">
 <title>${esc(name)}</title>
 ${FAVICON}
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="${_FONTS}" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{scroll-behavior:smooth;overflow-x:hidden;}
-body{background:${BG};color:${TEXT};font-family:'Barlow',sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
-a{text-decoration:none;color:inherit;}
-img{display:block;}
-@keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.fu{opacity:0;animation:fu .55s ease forwards;}
-.d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}
-@media(max-width:680px){
-  .desk-only{display:none!important;}
-  .hero-h1{font-size:clamp(36px,10vw,52px)!important;}
-  .sec{padding:36px 20px!important;width:100%!important;}
-  .hero-sub{max-width:100%!important;}
-  .hero-ctas{flex-direction:column!important;gap:10px!important;}
-  .hero-ctas a{text-align:center;width:100%;}
-  .svc-grid{grid-template-columns:1fr 1fr!important;}
-  .ft-grid{grid-template-columns:1fr!important;gap:24px!important;}
-  .stats-grid{grid-template-columns:1fr 1fr!important;}
-  .mob-hide{display:none!important;}
-  .trust-row{display:grid!important;grid-template-columns:1fr 1fr;gap:4px 12px;justify-items:start;}
-  .trust-dot{display:none!important;}
+:root{
+  --accent:#E8440A;--black:#0D0D0D;--off-black:#1A1A1A;--white:#FFFFFF;
+  --grey-1:#F7F6F4;--grey-2:#E8E6E2;--grey-3:#9E9B96;--text:#1A1A1A;
+  --font:'Plus Jakarta Sans',sans-serif;
+  --r-sm:8px;--r-md:14px;--r-lg:20px;--r-full:999px;
+  --max-w:1100px;--pad:20px;
 }
-@media(max-width:480px){.hero-h1{font-size:2.4rem!important;}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+body{font-family:var(--font);background:var(--white);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+a{text-decoration:none;color:inherit;}
+img{display:block;max-width:100%;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.container{width:100%;max-width:var(--max-w);margin:0 auto;padding:0 var(--pad);}
+:focus{outline:none;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px;}
+
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--black);padding:11px var(--pad);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.topbar-status{display:flex;align-items:center;gap:8px;}
+.status-dot{width:7px;height:7px;background:#4ADE80;border-radius:50%;animation:pulse-dot 2.5s ease-in-out infinite;flex-shrink:0;}
+@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:.35;}}
+.status-text{font-size:12px;font-weight:500;color:rgba(255,255,255,.55);letter-spacing:.02em;}
+.topbar-phone{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--white);letter-spacing:.01em;padding:5px 12px;border-radius:var(--r-full);border:1px solid rgba(255,255,255,.15);transition:background .15s,border-color .15s;}
+.topbar-phone:hover,.topbar-phone:focus-visible{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.3);}
+.topbar-phone svg{width:12px;height:12px;stroke:var(--white);fill:none;stroke-width:2;stroke-linecap:round;}
+
+/* HERO */
+.hero{position:relative;height:100svh;min-height:560px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;padding-top:44px;}
+.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.6) 30%,rgba(0,0,0,.2) 60%,transparent 100%);}
+.hero-content{position:relative;z-index:2;padding:0 var(--pad) 32px;}
+.hero-rating{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);border-radius:var(--r-full);padding:5px 12px;margin-bottom:14px;}
+.hero-stars{color:#FFC940;font-size:12px;letter-spacing:1px;}
+.hero-rating-score{font-size:12px;font-weight:600;color:var(--white);letter-spacing:.02em;}
+.hero-rating-count{font-size:11px;color:rgba(255,255,255,.45);}
+.hero-name{font-size:clamp(38px,10vw,56px);font-weight:800;color:var(--white);line-height:.97;letter-spacing:-.04em;margin-bottom:6px;}
+.hero-tagline{font-size:14px;color:rgba(255,255,255,.45);font-weight:400;letter-spacing:.02em;margin-bottom:24px;}
+.hero-ctas{display:flex;flex-direction:column;gap:10px;}
+.btn-book{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:var(--white);font-size:15px;font-weight:600;letter-spacing:.01em;padding:15px 20px;border-radius:var(--r-md);transition:opacity .15s,transform .1s;-webkit-tap-highlight-color:transparent;}
+.btn-book:active{opacity:.85;transform:scale(.99);}
+.btn-book svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;}
+.btn-call{display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.2);color:var(--white);font-size:14px;font-weight:500;padding:13px 20px;border-radius:var(--r-md);transition:background .15s;-webkit-tap-highlight-color:transparent;}
+.btn-call:active{background:rgba(255,255,255,.18);}
+
+/* TRUST BAR */
+.trust{background:var(--off-black);padding:20px var(--pad);display:flex;align-items:center;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.trust::-webkit-scrollbar{display:none;}
+.trust-item{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:72px;}
+.trust-item+.trust-item{border-left:1px solid rgba(255,255,255,.08);padding-left:8px;}
+.trust-n{font-size:21px;font-weight:800;color:var(--white);line-height:1;letter-spacing:-.02em;}
+.trust-l{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;}
+
+/* SERVICES */
+.services{padding:56px 0;}
+.section-eyebrow{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--grey-3);margin-bottom:10px;}
+.section-title{font-size:clamp(28px,6vw,40px);font-weight:800;line-height:1.05;letter-spacing:-.04em;color:var(--text);margin-bottom:32px;}
+.service-list{list-style:none;border-top:1px solid var(--grey-2);}
+.service-item{display:flex;align-items:flex-start;gap:16px;padding:16px 0;border-bottom:1px solid var(--grey-2);}
+.service-num{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.04em;flex-shrink:0;width:28px;padding-top:2px;}
+.service-name{font-size:15px;font-weight:600;color:var(--text);}
+.service-desc{font-size:12px;color:var(--grey-3);margin-top:2px;font-weight:400;line-height:1.55;}
+
+/* GALLERY */
+.gallery{padding-bottom:56px;}
+.gallery-scroll{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 var(--pad);margin:0 calc(var(--pad) * -1);}
+.gallery-scroll::-webkit-scrollbar{display:none;}
+.gallery-item{flex:0 0 72vw;max-width:280px;aspect-ratio:4/5;overflow:hidden;border-radius:var(--r-md);scroll-snap-align:start;background:var(--grey-2);}
+.gallery-item:first-child{margin-left:var(--pad);}
+.gallery-item:last-child{margin-right:var(--pad);}
+.gallery-item img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease;}
+.gallery-item:hover img{transform:scale(1.03);}
+.gallery-dots{display:flex;justify-content:center;gap:6px;margin-top:14px;}
+.gallery-dot{width:6px;height:6px;border-radius:50%;background:var(--grey-2);transition:background .2s,width .2s;}
+.gallery-dot.active{background:var(--accent);width:18px;border-radius:3px;}
+
+/* REVIEW */
+.review{background:var(--black);padding:56px var(--pad);}
+.review-stars{color:#FFC940;font-size:16px;letter-spacing:2px;margin-bottom:20px;}
+.review-quote{font-size:clamp(20px,5vw,28px);font-weight:700;line-height:1.35;letter-spacing:-.02em;color:var(--white);margin-bottom:20px;}
+.review-author{font-size:13px;color:rgba(255,255,255,.35);font-weight:400;}
+.review-divider{width:32px;height:2px;background:var(--accent);margin-bottom:24px;border-radius:2px;}
+
+/* CONTACT */
+.contact{padding:56px 0;}
+.contact-cta{display:flex;align-items:center;gap:14px;background:var(--grey-1);border-radius:var(--r-lg);padding:20px;margin-bottom:32px;text-decoration:none;transition:background .15s;}
+.contact-cta:hover{background:var(--grey-2);}
+.contact-cta-icon{width:44px;height:44px;background:var(--accent);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.contact-cta-icon svg{width:20px;height:20px;stroke:var(--white);fill:none;stroke-width:2;stroke-linecap:round;}
+.contact-cta-label{font-size:11px;font-weight:600;color:var(--grey-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;}
+.contact-cta-value{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.02em;}
+.contact-addr{display:flex;align-items:flex-start;gap:14px;background:var(--grey-1);border-radius:var(--r-lg);padding:20px;margin-bottom:32px;}
+.contact-addr-icon{width:44px;height:44px;background:var(--grey-2);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.contact-addr-icon svg{width:20px;height:20px;stroke:var(--grey-3);fill:none;stroke-width:2;stroke-linecap:round;}
+.contact-addr-text{font-size:14px;color:var(--text);line-height:1.55;}
+.contact-addr-map{display:inline-block;font-size:12px;font-weight:600;color:var(--accent);margin-top:5px;}
+.hours-title{font-size:18px;font-weight:800;letter-spacing:-.02em;color:var(--text);margin-bottom:16px;}
+.hours-list{list-style:none;}
+.hours-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--grey-2);font-size:13px;}
+.hours-row:last-child{border-bottom:none;}
+.hours-day{color:var(--grey-3);font-weight:400;}
+.hours-row.today .hours-day{color:var(--text);font-weight:600;}
+.hours-time{font-weight:600;color:var(--text);}
+.hours-time.today{color:var(--accent);}
+.hours-time.closed{color:var(--grey-3);font-weight:400;}
+
+/* FOOTER */
+footer{background:var(--black);padding:24px var(--pad);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.foot-name{font-size:15px;font-weight:800;color:rgba(255,255,255,.3);letter-spacing:-.02em;}
+.foot-credit{font-size:11px;color:rgba(255,255,255,.12);}
+
+/* STICKY BOTTOM CTA (mobile only) */
+.sticky-cta{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--white);border-top:1px solid var(--grey-2);padding:12px var(--pad) max(12px,env(safe-area-inset-bottom));}
+.sticky-cta.visible{display:flex;}
+.sticky-cta-inner{display:flex;gap:10px;width:100%;max-width:var(--max-w);margin:0 auto;}
+.sticky-cta .btn-book{flex:2;}
+.sticky-cta .btn-call-sm{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--grey-1);color:var(--text);border-radius:var(--r-md);font-size:14px;font-weight:600;padding:15px 12px;border:1px solid var(--grey-2);}
+
+/* ANIMATIONS */
+@keyframes fade-up{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.fade-up{opacity:0;animation:fade-up .5s ease forwards;}
+.delay-1{animation-delay:.1s;}.delay-2{animation-delay:.2s;}.delay-3{animation-delay:.3s;}.delay-4{animation-delay:.4s;}
+
+/* DESKTOP */
+@media(min-width:768px){
+  :root{--pad:40px;}
+  .sticky-cta{display:none!important;}
+  .hero{height:100svh;min-height:640px;flex-direction:row;align-items:stretch;justify-content:stretch;}
+  .hero-overlay{background:linear-gradient(to right,rgba(0,0,0,.88) 0%,rgba(0,0,0,.6) 45%,rgba(0,0,0,.15) 70%,transparent 100%);}
+  .hero-img{object-position:center center;}
+  .hero-content{display:flex;flex-direction:column;justify-content:center;padding:0 48px;max-width:560px;}
+  .hero-ctas{flex-direction:row;}
+  .btn-book{flex:1;} .btn-call{flex:1;}
+  .trust{justify-content:center;gap:0;}
+  .trust-item{min-width:160px;padding:0 40px;}
+  .trust-n{font-size:28px;}
+  .service-list{display:grid;grid-template-columns:1fr 1fr;gap:0 48px;}
+  .gallery-scroll{overflow:visible;flex-wrap:wrap;margin:0;padding:0 var(--pad);}
+  .gallery-item{flex:0 0 calc(25% - 6px);max-width:none;}
+  .gallery-item:first-child{margin-left:0;} .gallery-item:last-child{margin-right:0;}
+  .gallery-dots{display:none;}
+  .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;}
+  .topbar{padding:12px var(--pad);}
+  .status-text{font-size:13px;}
+  .topbar-phone{font-size:14px;padding:6px 16px;}
+}
+@media(min-width:1024px){
+  .hero-content{max-width:620px;padding:0 64px;}
+  .hero-name{font-size:68px;}
+}
 </style>
 </head>
 <body>
-<div style="background:${ACCENT};padding:10px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
-  <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#fff;letter-spacing:.08em;text-transform:uppercase;" class="desk-only"><span style="width:6px;height:6px;background:#fff;border-radius:50%;display:inline-block;margin-right:7px;animation:pulse 2s infinite;"></span>Same-Day Service &nbsp;·&nbsp; Free Estimates &nbsp;·&nbsp; Licensed &amp; Insured</span>
-  <a href="tel:${cp}" style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#fff;letter-spacing:.04em;white-space:nowrap;">📞 ${esc(phone)}</a>
-</div>
-<section style="position:relative;min-height:92vh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;">
-  ${photos.hero?`<div style="position:absolute;inset:0;background:url('${photos.hero}') center/cover no-repeat;"></div>`:`<div style="position:absolute;inset:0;background:linear-gradient(135deg,${ACCENT},#0a1f3d);"></div>`}
-  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(5,5,8,.95) 0%,rgba(5,5,8,.68) 38%,rgba(5,5,8,.18) 68%,rgba(5,5,8,.02) 100%);"></div>
-  <div style="position:absolute;top:0;left:0;right:0;z-index:10;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:.06em;color:#fff;">${esc(shortName.toUpperCase())}</div>
-    <nav style="display:flex;gap:24px;align-items:center;" class="desk-only">
-      <a href="#services" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Services</a>
-      <a href="#reviews" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Reviews</a>
-      <a href="https://www.gethellosite.com/#demo" style="font-size:13px;color:rgba(255,255,255,.65);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.65)'">Location</a>
-      <a href="${secureSiteUrl(place.id)}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">SECURE MY SITE</a>
-      <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:8px 18px;border-radius:4px;font-size:13px;font-weight:700;">Call Now</a>
-    </nav>
+<a class="visually-hidden" href="#main">Skip to main content</a>
+
+<div class="topbar" role="banner" aria-label="Business status and contact">
+  <div class="topbar-status">
+    <span class="status-dot" aria-hidden="true"></span>
+    <span class="status-text">Open now${cityStr ? ` · ${esc(cityStr)}` : ''}</span>
   </div>
-  <div style="position:relative;z-index:2;padding:72px 48px 52px;max-width:100%;" class="sec">
-    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);padding:6px 14px;border-radius:100px;margin-bottom:20px;" class="fu"><span style="color:#FFD700;font-size:14px;letter-spacing:2px;">${stars(rating)}</span><span style="font-size:13px;font-weight:600;color:#fff;">${rating}</span><span style="font-size:12px;color:rgba(255,255,255,.55);">&nbsp;·&nbsp;${reviewCount} Google reviews</span></div>
-    <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(48px,10vw,110px);font-weight:800;line-height:.93;color:#fff;margin-bottom:16px;" class="fu d1 hero-h1">${headline(copy.hero_headline,'#7EB3FF')}</h1>
-    <p style="font-size:17px;color:rgba(255,255,255,.65);line-height:1.7;max-width:500px;margin-bottom:28px;" class="fu d2 hero-sub">${esc(copy.hero_sub||'')}</p>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;" class="fu d3 hero-ctas">
-      <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:14px 28px;border-radius:5px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 4px 20px rgba(0,0,0,.25);display:inline-flex;align-items:center;gap:8px;">📞 Call Now - ${esc(phone)}</a>
-      <a href="#services" style="background:transparent;color:#fff;padding:14px 24px;border-radius:5px;border:2px solid rgba(255,255,255,.45);font-size:15px;font-weight:600;">See Our Services</a>
+  ${phone ? `<a href="tel:${cp}" class="topbar-phone" aria-label="Call ${esc(name)} at ${esc(phone)}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+    ${esc(phone)}
+  </a>` : ''}
+</div>
+
+<main id="main">
+<header class="hero" role="banner">
+  ${heroImg ? `<img class="hero-img" src="${heroImg}" alt="${heroAlt}" fetchpriority="high" decoding="async">` : ''}
+  <div class="hero-overlay" aria-hidden="true"></div>
+  <div class="hero-content">
+    <div class="hero-rating fade-up" role="img" aria-label="${ratingTxt} stars, ${reviewCount} Google reviews">
+      <span class="hero-stars" aria-hidden="true">${stars(rating)}</span>
+      <span class="hero-rating-score">${ratingTxt}</span>
+      <span class="hero-rating-count">· ${reviewCount} reviews</span>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:20px;align-items:center;" class="fu d4 trust-row">${['✓ Licensed','✓ Insured','✓ Free Estimates','✓ Same-Day Available'].map((b,i)=>`${i>0?'<span class="trust-dot" style="color:rgba(255,255,255,.2);">·</span>':''}<span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.5);">${b}</span>`).join('')}</div>
-  </div>
-</section>
-<div style="background:${SURFACE};border-bottom:1px solid ${BORDER};">
-  <div style="max-width:960px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);" class="stats-grid">
-    ${[[`${rating}★`,'Star Rating'],[reviewCount,'Google Reviews'],['Same Day','Service Available'],['Free','Estimates']].map(([num,label],i)=>`<div style="padding:20px 16px;text-align:center;${i<3?`border-right:1px solid ${BORDER}`:''}"><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${ACCENT};line-height:1;">${num}</div><div style="font-size:11px;color:${MUTED};text-transform:uppercase;letter-spacing:.1em;margin-top:4px;">${label}</div></div>`).join('')}
-  </div>
-</div>
-<section id="services" style="padding:60px 32px;max-width:960px;margin:0 auto;" class="sec">
-  <p style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:${ACCENT};letter-spacing:.22em;text-transform:uppercase;margin-bottom:10px;">${esc(copy.services_label||'WHAT WE DO')}</p>
-  <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1;color:${TEXT};margin-bottom:36px;">Built For Every Job</h2>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" class="svc-grid">
-    ${services.map((s,i)=>`<div style="background:${SURFACE};border:1px solid ${BORDER};border-radius:8px;padding:22px 20px;transition:border-color .2s,box-shadow .2s;" onmouseover="this.style.borderColor='${ACCENT}';this.style.boxShadow='0 4px 16px rgba(0,0,0,.07)'" onmouseout="this.style.borderColor='${BORDER}';this.style.boxShadow='none'"><div style="width:32px;height:3px;background:${ACCENT};border-radius:2px;margin-bottom:12px;"></div><div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;color:${TEXT};margin-bottom:5px;line-height:1.2;">${esc(s)}</div><div style="font-size:13px;color:${MUTED};line-height:1.6;">${esc(descs[i]||'')}</div></div>`).join('')}
-  </div>
-</section>
-<section id="reviews" style="background:${ACCENT};padding:52px 32px;" class="sec">
-  <div style="max-width:700px;margin:0 auto;text-align:center;">
-    <div style="font-size:52px;color:rgba(255,255,255,.2);line-height:1;font-family:Georgia,serif;margin-bottom:2px;">"</div>
-    <p style="font-family:'Barlow',sans-serif;font-size:clamp(17px,2.5vw,22px);font-weight:500;color:#fff;line-height:1.7;font-style:italic;margin-bottom:18px;">${esc(review.text)}</p>
-    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;"><span style="color:rgba(255,255,255,.85);font-size:14px;letter-spacing:2px;">${stars(review.rating)}</span><span style="font-size:13px;color:rgba(255,255,255,.7);font-weight:500;">- ${esc(review.author)}</span></div>
-    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:7px 16px;border-radius:100px;"><span style="color:#FFD700;font-size:13px;">${stars(rating)}</span><span style="font-size:13px;color:#fff;font-weight:600;">${rating} · ${reviewCount} Google Reviews</span></div>
-  </div>
-</section>
-${gallHTML}
-<section id="contact" style="padding:60px 32px;max-width:960px;margin:0 auto;" class="sec">
-  <p style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:${ACCENT};letter-spacing:.22em;text-transform:uppercase;margin-bottom:10px;">FIND US</p>
-  <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(30px,5vw,44px);font-weight:800;line-height:1;color:${TEXT};margin-bottom:32px;">${esc(copy.cta_heading||'Get In Touch')}</h2>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;" class="ft-grid">
-    <div><p style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:${MUTED};letter-spacing:.15em;text-transform:uppercase;margin-bottom:14px;">Hours</p>${hoursRows}</div>
-    <div style="display:flex;flex-direction:column;gap:12px;">
-      <a href="tel:${cp}" style="background:${ACCENT};color:#fff;padding:16px 22px;border-radius:6px;display:flex;align-items:center;gap:14px;"><span style="font-size:22px;">📞</span><div><div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;opacity:.75;margin-bottom:2px;">Call or Text</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;">${esc(phone)}</div></div></a>
-      <a href="${mapsUrl}" target="_blank" style="background:${SURFACE};border:1px solid ${BORDER};color:${TEXT};padding:16px 22px;border-radius:6px;display:flex;align-items:flex-start;gap:14px;transition:border-color .2s;" onmouseover="this.style.borderColor='${ACCENT}'" onmouseout="this.style.borderColor='${BORDER}'"><span style="font-size:20px;margin-top:2px;">📍</span><div><div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:${MUTED};margin-bottom:4px;">Location</div><div style="font-size:15px;line-height:1.5;">${esc(address)}</div><div style="font-size:12px;color:${ACCENT};margin-top:5px;font-weight:600;">Get Directions →</div></div></a>
+    <h1 class="hero-name fade-up delay-1">${esc(name)}</h1>
+    <p class="hero-tagline fade-up delay-2">${esc(tagline)}</p>
+    <div class="hero-ctas fade-up delay-3" role="group" aria-label="Booking options">
+      ${phone ? `<a href="tel:${cp}" class="btn-book" aria-label="Book now — call ${esc(phone)}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        Book now
+      </a>
+      <a href="tel:${cp}" class="btn-call" aria-label="Call us at ${esc(phone)}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+        ${esc(phone)}
+      </a>` : ''}
     </div>
   </div>
+</header>
+
+<section class="trust" aria-label="Business highlights">
+  <div class="trust-item"><span class="trust-n">${ratingTxt}★</span><span class="trust-l">Rating</span></div>
+  <div class="trust-item"><span class="trust-n">${reviewCount}</span><span class="trust-l">Reviews</span></div>
+  <div class="trust-item"><span class="trust-n">Walk-in</span><span class="trust-l">Welcome</span></div>
+  ${cityStr ? `<div class="trust-item"><span class="trust-n">Local</span><span class="trust-l">${esc(cityStr.split(',')[0])}</span></div>` : ''}
 </section>
-<footer style="background:${SURFACE};border-top:1px solid ${BORDER};padding:18px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-  <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.06em;color:${MUTED};">${esc(shortName.toUpperCase())}</div>
-  <div style="display:flex;gap:16px;"><a href="${mapsUrl}" target="_blank" style="color:${MUTED};font-size:12px;" onmouseover="this.style.color='${ACCENT}'" onmouseout="this.style.color='${MUTED}'">Google Maps</a><a href="tel:${cp}" style="color:${MUTED};font-size:12px;" onmouseover="this.style.color='${ACCENT}'" onmouseout="this.style.color='${MUTED}'">${esc(phone)}</a></div>
-  <div style="font-size:10px;color:#CBD5E1;">A HelloSite · GetHelloSite.com</div>
+
+${servicesHTML}
+${galleryHTML}
+${reviewHTML}
+
+<section class="contact" aria-labelledby="contact-title" id="contact">
+  <div class="container">
+    <p class="section-eyebrow">Find us</p>
+    <h2 class="section-title" id="contact-title">Come in anytime.</h2>
+    <div class="contact-grid">
+      <div>
+        ${phone ? `<a href="tel:${cp}" class="contact-cta" aria-label="Call ${esc(name)}">
+          <div class="contact-cta-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+          </div>
+          <div>
+            <div class="contact-cta-label">Call or text</div>
+            <div class="contact-cta-value">${esc(phone)}</div>
+          </div>
+        </a>` : ''}
+        ${address ? `<address style="font-style:normal;">
+          <div class="contact-addr">
+            <div class="contact-addr-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div>
+              <div class="contact-addr-text">${esc(address)}</div>
+              <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="contact-addr-map">Get directions →</a>
+            </div>
+          </div>
+        </address>` : ''}
+      </div>
+      ${hoursHTML}
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <span class="foot-name">${esc(name)}</span>
+  <span class="foot-credit">A HelloSite · gethellosite.com</span>
 </footer>
-${claimCTA(ACCENT, place.id)}
-</body></html>`;
+
+${phone ? `<div class="sticky-cta" role="complementary" aria-label="Quick booking">
+  <div class="sticky-cta-inner">
+    <a href="tel:${cp}" class="btn-book">Book now</a>
+    <a href="tel:${cp}" class="btn-call-sm" aria-label="Call us">
+      <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+      Call
+    </a>
+  </div>
+</div>` : ''}
+
+${claimCTA('var(--accent)', place.id)}
+
+<script>
+(function(){'use strict';
+var scroll=document.querySelector('.gallery-scroll');
+var dots=document.querySelectorAll('.gallery-dot');
+var items=document.querySelectorAll('.gallery-item');
+if(scroll&&dots.length&&'IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){var best=null,r=0;es.forEach(function(e){if(e.intersectionRatio>r){r=e.intersectionRatio;best=e.target;}});if(best){var i=Array.prototype.indexOf.call(items,best);dots.forEach(function(d,j){d.classList.toggle('active',j===i);});}},{root:scroll,threshold:[0.4,0.6]});
+  items.forEach(function(it){io.observe(it);});
+}
+var sticky=document.querySelector('.sticky-cta'),hero=document.querySelector('.hero');
+if(sticky&&hero&&window.matchMedia('(max-width:767px)').matches){
+  new IntersectionObserver(function(e){sticky.classList.toggle('visible',!e[0].isIntersecting);},{threshold:0}).observe(hero);
+}
+if('IntersectionObserver' in window){
+  var t=document.querySelectorAll('.service-item, .gallery-item, .contact-cta, .contact-addr');
+  var fio=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.style.animation='fade-up .45s ease forwards';fio.unobserve(e.target);}});},{threshold:0.1});
+  t.forEach(function(el){el.style.opacity='0';fio.observe(el);});
+}
+})();
+</script>
+</body>
+</html>`;
 }
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 2. GROOMING — Orig layout · White #FFFFFF · Near-black #2C2C2C
+// 2. BOLD  ·  Accent #17324D (sky #4EA7FF)
+//    Plumbers, electricians, contractors, auto, pest, locksmiths, landscapers.
+//    Source: template_bold_v1.html
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function templateGrooming(place, copy, photos) {
-  const {name,shortName,phone,address,rating,reviewCount,reviews,hours} = extractPlaceData(place);
-  const review = bestReview(reviews);
-  const services = copy.services || [];
+function templateBold(place, copy, photos) {
+  const { name, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
+  const allHours = place.regularOpeningHours?.weekdayDescriptions || [];
+  const review   = bestReview(reviews);
+  const services = _normalizeServices(copy);
+  const tagline  = (copy && copy.tagline) || `${_city(address) || 'Greater area'}'s trusted local pros.`;
+  const cp       = cleanPhone(phone);
+  const cityStr  = _city(address);
+  const heroAlt  = `${esc(name)} at work`;
+  const mapsUrl  = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
+  const hoursRows = _formatHoursRows(allHours);
+  const heroImg  = photos?.hero || (photos?.gallery && photos.gallery[0]) || '';
+  const gallery  = _padPhotos((photos && photos.gallery) || [], 3);
+  const ratingTxt = rating.toFixed(1);
 
-  const BG='#FFFFFF', SURFACE='#F7F6F3', ACCENT='#2C2C2C';
-  const TEXT='#111111', MUTED='#777777', BORDER='#E8E4DC';
+  const servicesHTML = services.length ? `
+<section class="services" aria-labelledby="services-heading">
+  <div class="container">
+    <p class="section-label">What we do</p>
+    <h2 class="section-title" id="services-heading">Every job,<br>done right.</h2>
+    <ul class="service-list" role="list">
+      ${services.map(s => `
+      <li class="service-item">
+        <div class="service-bullet" aria-hidden="true"></div>
+        <div>
+          <div class="service-name">${esc(s.name)}</div>
+          ${s.desc ? `<div class="service-desc">${esc(s.desc)}</div>` : ''}
+        </div>
+      </li>`).join('')}
+    </ul>
+  </div>
+</section>` : '';
 
-  return wrapHTML(name,
-    'family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Outfit:wght@300;400;500;600',
-    `body{background:${BG};color:${TEXT};font-family:'Outfit',sans-serif;}`,
-    `
-  <div style="height:3px;background:${ACCENT};"></div>
-
-  <div style="padding:20px 36px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;">
-    <div style="font-family:'Cormorant Garamond',serif;font-size:11px;color:${MUTED};letter-spacing:.2em;" class="mob-hide">Est. in Business</div>
-    <div style="text-align:center;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;letter-spacing:.2em;">${esc(name.toUpperCase())}</div>
-      <div style="height:1px;background:${ACCENT};margin:6px 0;opacity:.15;"></div>
-      <div style="font-size:10px;color:${MUTED};letter-spacing:.22em;text-transform:uppercase;">${esc(copy.tagline||'')}</div>
-    </div>
-    <div style="text-align:right;font-family:'Cormorant Garamond',serif;font-size:13px;color:${MUTED};" class="mob-hide">
-      <a href="tel:${cleanPhone(phone)}" style="color:${MUTED};">${esc(phone)}</a>
+  const photosHTML = gallery.length ? `
+<section class="photos" aria-labelledby="photos-heading">
+  <div class="container">
+    <p class="section-label photos-label" id="photos-heading">The work</p>
+    <div class="photos-grid" role="region" aria-label="${esc(name)} photo gallery">
+      ${gallery.slice(0, 3).map((u, i) => `<div class="photo"><img src="${u}" alt="${esc(name)} photo ${i + 1}" loading="lazy" decoding="async"></div>`).join('')}
     </div>
   </div>
+</section>` : '';
 
-  <div style="padding:44px 36px 52px;max-width:660px;margin:0 auto;text-align:center;" class="mob-pad hero-pad">
-    <span style="color:${ACCENT};font-size:17px;letter-spacing:2px;" class="fu">${stars(rating)}</span>
-    <p style="font-size:10px;color:${MUTED};letter-spacing:.2em;text-transform:uppercase;margin-top:8px;margin-bottom:32px;" class="fu">${rating} Stars · ${reviewCount} Reviews</p>
-    <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.0;margin-bottom:22px;" class="fu d1">
-      ${headline(copy.hero_headline,ACCENT)}
-    </h1>
-    <p style="font-size:14px;color:${MUTED};margin-bottom:36px;font-weight:300;letter-spacing:.03em;line-height:1.8;" class="fu d2">${esc(copy.hero_sub||'')}</p>
-    <div style="display:flex;gap:14px;justify-content:center;" class="fu d3">
-      <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:12px 28px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-family:'Outfit',sans-serif;font-weight:600;">BOOK APPOINTMENT</a>
-      <a href="#services" style="background:transparent;border:1px solid ${BORDER};color:${MUTED};padding:12px 20px;font-size:11px;letter-spacing:.1em;">SERVICES</a>
+  const reviewHTML = review.text ? `
+<section class="review" aria-labelledby="review-heading">
+  <div class="container">
+    <div class="review-inner">
+      <div class="review-accent" aria-hidden="true"></div>
+      <div class="review-stars" aria-label="${review.rating} stars">${stars(review.rating)}</div>
+      <blockquote>
+        <p class="review-text" id="review-heading">"${esc(review.text)}"</p>
+        <footer class="review-author"><cite>— ${esc(review.author)}</cite></footer>
+      </blockquote>
     </div>
   </div>
+</section>` : '';
 
-  ${photos.hero?`<div style="height:360px;overflow:hidden;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};"><img src="${photos.hero}" style="width:100%;height:100%;object-fit:cover;object-position:center top;" loading="lazy"/></div>`:''}
+  const hoursHTML = hoursRows.length ? `
+<div>
+  <h3 class="hours-title">Hours</h3>
+  <ul class="hours-list" aria-label="Business hours">
+    ${hoursRows.map(r => `
+    <li class="hours-row${r.isToday ? ' today' : ''}">
+      <span class="hours-day">${esc(r.day)}</span>
+      <span class="hours-time${r.isClosed ? ' closed' : ''}">${esc(r.time) || 'Closed'}</span>
+    </li>`).join('')}
+  </ul>
+</div>` : '';
 
-  <div style="background:${SURFACE};padding:48px 36px;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
-    <div style="max-width:860px;margin:0 auto;">
-      <h2 style="font-family:'Cormorant Garamond',serif;font-size:11px;font-weight:600;color:${MUTED};letter-spacing:.3em;text-transform:uppercase;text-align:center;margin-bottom:32px;">${esc(copy.services_label||'THE MENU')}</h2>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" class="g3">
-        ${services.map((s,i)=>`
-        <div style="background:${BG};border:1px solid ${BORDER};border-radius:10px;padding:20px 18px;">
-          <div style="width:28px;height:2px;background:${ACCENT};margin-bottom:10px;"></div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700;margin-bottom:4px;">${esc(s)}</div>
-          ${copy.service_descs?.[i]?`<div style="font-size:12px;color:${MUTED};line-height:1.6;">${esc(copy.service_descs[i])}</div>`:''}
-        </div>`).join('')}
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="${esc(name)} — ${esc(tagline)}">
+<title>${esc(name)}</title>
+${FAVICON}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="${_FONTS}" rel="stylesheet">
+<style>
+:root{
+  --accent:#17324D;--sky:#4EA7FF;--black:#0A0A0A;--ink:#111111;--white:#FFFFFF;
+  --cream:#F5F3EF;--grey-1:#F0EEE9;--grey-2:#E0DDD7;--grey-3:#9E9B96;
+  --font:'Plus Jakarta Sans',sans-serif;--pad:20px;--max-w:1100px;
+  --r:10px;--r-lg:18px;--r-full:999px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+body{font-family:var(--font);background:var(--cream);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+a{text-decoration:none;color:inherit;}
+img{display:block;max-width:100%;}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.container{width:100%;max-width:var(--max-w);margin:0 auto;padding:0 var(--pad);}
+:focus{outline:none;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px;}
+
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--accent);padding:10px var(--pad);display:flex;align-items:center;justify-content:space-between;}
+.topbar-trust{display:flex;align-items:center;gap:16px;overflow:hidden;}
+.topbar-badge{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:rgba(255,255,255,.8);letter-spacing:.02em;white-space:nowrap;}
+.topbar-badge svg{width:12px;height:12px;stroke:rgba(255,255,255,.7);fill:none;stroke-width:2.2;stroke-linecap:round;flex-shrink:0;}
+.topbar-sep{width:1px;height:12px;background:rgba(255,255,255,.25);flex-shrink:0;}
+.topbar-phone{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;color:var(--white);letter-spacing:-.01em;white-space:nowrap;padding:6px 14px;background:rgba(0,0,0,.2);border-radius:var(--r-full);transition:background .15s;flex-shrink:0;}
+.topbar-phone:hover{background:rgba(0,0,0,.3);}
+.topbar-phone svg{width:13px;height:13px;stroke:var(--white);fill:none;stroke-width:2;stroke-linecap:round;}
+
+/* HERO */
+.hero{position:relative;height:100svh;min-height:580px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;padding-top:42px;}
+.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.97) 0%,rgba(0,0,0,.80) 28%,rgba(0,0,0,.45) 55%,rgba(0,0,0,.15) 75%,transparent 100%);}
+.hero-slash{position:absolute;bottom:0;left:0;width:5px;height:100%;background:var(--accent);z-index:3;}
+.hero-content{position:relative;z-index:4;padding:0 calc(var(--pad) + 12px) 36px calc(var(--pad) + 8px);}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:7px;margin-bottom:14px;}
+.hero-eyebrow-dot{width:8px;height:8px;background:var(--sky);border-radius:50%;flex-shrink:0;}
+.hero-eyebrow-text{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.14em;text-transform:uppercase;}
+.hero-name{font-size:clamp(40px,10vw,60px);font-weight:800;color:var(--white);line-height:.95;letter-spacing:-.04em;margin-bottom:10px;}
+.hero-tagline{font-size:15px;font-weight:400;color:rgba(255,255,255,.45);line-height:1.55;margin-bottom:28px;max-width:300px;}
+.hero-phone-cta{display:flex;align-items:center;gap:14px;background:var(--accent);border-radius:var(--r);padding:16px 20px;margin-bottom:12px;transition:opacity .15s;-webkit-tap-highlight-color:transparent;}
+.hero-phone-cta:active{opacity:.88;}
+.hero-phone-icon{width:40px;height:40px;background:rgba(0,0,0,.2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.hero-phone-icon svg{width:18px;height:18px;stroke:var(--white);fill:none;stroke-width:2;stroke-linecap:round;}
+.hero-phone-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.12em;margin-bottom:2px;}
+.hero-phone-number{font-size:22px;font-weight:800;color:var(--white);letter-spacing:-.02em;}
+.hero-rating{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-full);padding:7px 14px;}
+.hero-stars{color:#FFC940;font-size:12px;letter-spacing:1px;}
+.hero-rating-text{font-size:12px;font-weight:600;color:rgba(255,255,255,.6);}
+
+/* CREDENTIALS BAR */
+.creds{background:var(--ink);padding:0 var(--pad);display:flex;align-items:stretch;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.creds::-webkit-scrollbar{display:none;}
+.cred{display:flex;align-items:center;gap:8px;padding:16px 20px 16px 0;flex-shrink:0;}
+.cred+.cred{padding-left:20px;border-left:1px solid rgba(255,255,255,.07);}
+.cred-icon{width:28px;height:28px;background:rgba(255,255,255,.06);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cred-icon svg{width:14px;height:14px;stroke:var(--sky);fill:none;stroke-width:2.2;stroke-linecap:round;}
+.cred-text{font-size:12px;font-weight:700;color:rgba(255,255,255,.55);white-space:nowrap;}
+.cred-text b{color:var(--white);font-weight:700;}
+
+/* SERVICES */
+.services{padding:56px 0;}
+.section-label{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--grey-3);margin-bottom:10px;}
+.section-title{font-size:clamp(28px,6vw,40px);font-weight:800;letter-spacing:-.04em;line-height:1.05;color:var(--ink);margin-bottom:32px;}
+.service-list{list-style:none;}
+.service-item{display:flex;align-items:flex-start;gap:14px;padding:16px 0;border-bottom:1px solid var(--grey-2);}
+.service-item:first-child{border-top:1px solid var(--grey-2);}
+.service-bullet{width:6px;height:6px;background:var(--sky);border-radius:50%;flex-shrink:0;margin-top:7px;}
+.service-name{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px;}
+.service-desc{font-size:13px;color:var(--grey-3);line-height:1.55;}
+
+/* PHOTOS */
+.photos{padding-bottom:56px;}
+.photos-label{margin-bottom:16px;}
+.photos-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:6px;}
+.photo{overflow:hidden;border-radius:var(--r);background:var(--grey-2);}
+.photo:first-child{grid-column:1 / 3;aspect-ratio:16/9;}
+.photo:not(:first-child){aspect-ratio:1;}
+.photo img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease;}
+.photo:hover img{transform:scale(1.03);}
+
+/* REVIEW */
+.review{background:var(--ink);padding:56px var(--pad);}
+.review-inner{max-width:640px;}
+.review-accent{width:40px;height:3px;background:var(--sky);border-radius:2px;margin-bottom:24px;}
+.review-stars{color:#FFC940;font-size:14px;letter-spacing:2px;margin-bottom:16px;}
+.review-text{font-size:clamp(18px,4vw,24px);font-weight:700;line-height:1.4;letter-spacing:-.02em;color:var(--white);margin-bottom:16px;}
+.review-author{font-size:13px;font-weight:400;color:rgba(255,255,255,.3);}
+
+/* CONTACT */
+.contact{padding:56px 0;}
+.contact-phone-block{background:var(--ink);border-radius:var(--r-lg);padding:24px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.cpb-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:4px;}
+.cpb-number{font-size:clamp(24px,6vw,32px);font-weight:800;letter-spacing:-.03em;color:var(--white);}
+.cpb-cta{background:var(--sky);color:var(--white);font-size:13px;font-weight:700;padding:11px 20px;border-radius:var(--r);white-space:nowrap;flex-shrink:0;transition:opacity .15s;-webkit-tap-highlight-color:transparent;}
+.cpb-cta:active{opacity:.85;}
+.contact-addr{background:var(--grey-1);border:1px solid var(--grey-2);border-radius:var(--r-lg);padding:20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:32px;}
+.contact-addr-icon{width:38px;height:38px;background:var(--grey-2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.contact-addr-icon svg{width:18px;height:18px;stroke:var(--grey-3);fill:none;stroke-width:2;stroke-linecap:round;}
+.contact-addr-text{font-size:14px;color:var(--ink);line-height:1.6;}
+.contact-addr-map{display:inline-block;font-size:12px;font-weight:700;color:var(--accent);margin-top:5px;}
+.hours-title{font-size:17px;font-weight:800;letter-spacing:-.025em;color:var(--ink);margin-bottom:14px;}
+.hours-list{list-style:none;}
+.hours-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--grey-2);font-size:13px;}
+.hours-row:last-child{border-bottom:none;}
+.hours-day{color:var(--grey-3);}
+.hours-row.today .hours-day{color:var(--ink);font-weight:700;}
+.hours-time{font-weight:600;color:var(--ink);}
+.hours-time.accent{color:var(--sky);}
+.hours-time.closed{color:var(--grey-3);font-weight:400;}
+
+/* FOOTER */
+footer{background:var(--black);padding:20px var(--pad);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.foot-name{font-size:14px;font-weight:800;letter-spacing:-.02em;color:rgba(255,255,255,.25);}
+.foot-credit{font-size:11px;color:rgba(255,255,255,.1);}
+
+/* STICKY BOTTOM (mobile) */
+.sticky-cta{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--white);border-top:1px solid var(--grey-2);padding:12px var(--pad) max(12px,env(safe-area-inset-bottom));}
+.sticky-cta.visible{display:block;}
+.sticky-cta-inner{display:flex;gap:10px;}
+.sticky-book{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);color:var(--white);font-size:14px;font-weight:700;padding:14px;border-radius:var(--r);-webkit-tap-highlight-color:transparent;}
+.sticky-call{width:52px;display:flex;align-items:center;justify-content:center;background:var(--grey-1);border:1px solid var(--grey-2);border-radius:var(--r);flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.sticky-call svg{width:18px;height:18px;stroke:var(--ink);fill:none;stroke-width:2;stroke-linecap:round;}
+
+@keyframes fade-up{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+.fu{opacity:0;animation:fade-up .5s ease forwards;}
+.d1{animation-delay:.1s;}.d2{animation-delay:.22s;}.d3{animation-delay:.34s;}.d4{animation-delay:.46s;}
+
+@media(min-width:768px){
+  :root{--pad:40px;}
+  .sticky-cta{display:none!important;}
+  .topbar-badge:not(:first-child){display:flex;}
+  .hero-overlay{background:linear-gradient(to right,rgba(0,0,0,.97) 0%,rgba(0,0,0,.82) 35%,rgba(0,0,0,.45) 58%,rgba(0,0,0,.1) 80%,transparent 100%);}
+  .hero{justify-content:center;}
+  .hero-content{max-width:560px;padding:0 0 0 calc(var(--pad) + 12px);margin-top:42px;}
+  .hero-tagline{max-width:400px;}
+  .creds{justify-content:flex-start;gap:0;}
+  .cred{padding:18px 32px 18px 0;}
+  .cred+.cred{padding-left:32px;}
+  .service-list{display:grid;grid-template-columns:1fr 1fr;gap:0 48px;}
+  .service-item:nth-child(1),.service-item:nth-child(2){border-top:1px solid var(--grey-2);}
+  .photos-grid{grid-template-columns:3fr 2fr;grid-template-rows:1fr 1fr;height:420px;}
+  .photo:first-child{grid-column:1;grid-row:1 / 3;aspect-ratio:unset;border-radius:var(--r) 0 0 var(--r);}
+  .photo:not(:first-child){aspect-ratio:unset;border-radius:0;}
+  .photo:nth-child(2){border-radius:0 var(--r) 0 0;}
+  .photo:nth-child(3){border-radius:0 0 var(--r) 0;}
+  .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+}
+@media(min-width:1024px){
+  .hero-content{padding-left:64px;max-width:620px;}
+  .hero-name{font-size:68px;}
+}
+</style>
+</head>
+<body>
+<a class="visually-hidden" href="#main">Skip to main content</a>
+
+<div class="topbar" role="banner">
+  <div class="topbar-trust">
+    <div class="topbar-badge">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      Licensed &amp; Insured
+    </div>
+    <div class="topbar-sep" aria-hidden="true"></div>
+    <div class="topbar-badge">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Same-Day Service
+    </div>
+    <div class="topbar-sep" aria-hidden="true"></div>
+    <div class="topbar-badge">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Free Estimates
+    </div>
+  </div>
+  ${phone ? `<a href="tel:${cp}" class="topbar-phone" aria-label="Call ${esc(name)} at ${esc(phone)}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+    ${esc(phone)}
+  </a>` : ''}
+</div>
+
+<main id="main">
+<header class="hero">
+  ${heroImg ? `<img class="hero-img" src="${heroImg}" alt="${heroAlt}" fetchpriority="high" decoding="async">` : ''}
+  <div class="hero-overlay" aria-hidden="true"></div>
+  <div class="hero-slash" aria-hidden="true"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow fu">
+      <div class="hero-eyebrow-dot" aria-hidden="true"></div>
+      <span class="hero-eyebrow-text">${esc(cityStr || 'Local pros')}</span>
+    </div>
+    <h1 class="hero-name fu d1">${esc(name)}</h1>
+    <p class="hero-tagline fu d2">${esc(tagline)}</p>
+    ${phone ? `<a href="tel:${cp}" class="hero-phone-cta fu d3" aria-label="Call ${esc(name)} at ${esc(phone)}">
+      <div class="hero-phone-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
       </div>
+      <div>
+        <div class="hero-phone-label">Call or text anytime</div>
+        <div class="hero-phone-number">${esc(phone)}</div>
+      </div>
+    </a>` : ''}
+    <div class="hero-rating fu d4" role="img" aria-label="${ratingTxt} stars, ${reviewCount} Google reviews">
+      <span class="hero-stars" aria-hidden="true">${stars(rating)}</span>
+      <span class="hero-rating-text">${ratingTxt} · ${reviewCount} Google reviews</span>
     </div>
   </div>
+</header>
 
-  <div style="padding:60px 36px;max-width:580px;margin:0 auto;text-align:center;" class="mob-pad">
-    <div style="width:36px;height:1px;background:${ACCENT};margin:0 auto 28px;opacity:.3;"></div>
-    <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3vw,24px);font-style:italic;line-height:1.7;margin-bottom:18px;">"${esc(review.text)}"</p>
-    <p style="font-size:10px;color:${MUTED};letter-spacing:.2em;text-transform:uppercase;">- ${esc(review.author)}</p>
-    <div style="width:36px;height:1px;background:${ACCENT};margin:28px auto 0;opacity:.3;"></div>
+<section class="creds" aria-label="Business credentials">
+  <div class="cred">
+    <div class="cred-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
+    <span class="cred-text"><b>Licensed</b> &amp; Insured</span>
   </div>
+  <div class="cred">
+    <div class="cred-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+    <span class="cred-text"><b>Same-Day</b> Service</span>
+  </div>
+  <div class="cred">
+    <div class="cred-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+    <span class="cred-text"><b>${ratingTxt}★</b> · ${reviewCount} Reviews</span>
+  </div>
+  ${cityStr ? `<div class="cred">
+    <div class="cred-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+    <span class="cred-text"><b>Serving</b> ${esc(cityStr)}</span>
+  </div>` : ''}
+  <div class="cred">
+    <div class="cred-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+    <span class="cred-text"><b>Free</b> Estimates</span>
+  </div>
+</section>
 
-  ${galleryStrip(photos.gallery,BORDER,name)}
+${servicesHTML}
+${photosHTML}
+${reviewHTML}
 
-  <div style="border-top:1px solid ${BORDER};background:${SURFACE};padding:28px 36px;text-align:center;" class="mob-pad">
-    <p style="font-size:13px;color:${MUTED};margin-bottom:10px;">${esc(address)}</p>
-    <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:20px;">
-      ${hours.map(h=>`<span style="font-size:11px;color:${MUTED};letter-spacing:.04em;">${esc(h)}</span>`).join('')}
+<section class="contact" aria-labelledby="contact-heading" id="contact">
+  <div class="container">
+    <p class="section-label">Get in touch</p>
+    <h2 class="section-title" id="contact-heading">Call us anytime.</h2>
+    <div class="contact-grid">
+      <div>
+        ${phone ? `<div class="contact-phone-block">
+          <div>
+            <div class="cpb-label">Call or text</div>
+            <div class="cpb-number">${esc(phone)}</div>
+          </div>
+          <a href="tel:${cp}" class="cpb-cta" aria-label="Call ${esc(name)} now">Call now →</a>
+        </div>` : ''}
+        ${address ? `<address style="font-style:normal;">
+          <div class="contact-addr">
+            <div class="contact-addr-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div>
+              <div class="contact-addr-text">${esc(address)}</div>
+              <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="contact-addr-map">Get directions →</a>
+            </div>
+          </div>
+        </address>` : ''}
+      </div>
+      ${hoursHTML}
     </div>
-    <a href="tel:${cleanPhone(phone)}" style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:${ACCENT};">${esc(phone)}</a>
-    <div style="margin-top:20px;font-size:10px;color:#CBD5E1;font-family:'Outfit',sans-serif;letter-spacing:.05em;">A HelloSite · GetHelloSite.com</div>
   </div>
+</section>
+</main>
 
-  ${claimCTA(ACCENT, place.id)}`);
+<footer>
+  <span class="foot-name">${esc(name)}</span>
+  <span class="foot-credit">A HelloSite · gethellosite.com</span>
+</footer>
+
+${phone ? `<div class="sticky-cta" role="complementary" aria-label="Quick contact">
+  <div class="sticky-cta-inner">
+    <a href="tel:${cp}" class="sticky-book" aria-label="Call ${esc(name)} now">
+      <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+      Call now — ${esc(phone)}
+    </a>
+    <a href="#contact" class="sticky-call" aria-label="See hours and address">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </a>
+  </div>
+</div>` : ''}
+
+${claimCTA('var(--accent)', place.id)}
+
+<script>
+(function(){'use strict';
+var hero=document.querySelector('.hero'),sticky=document.querySelector('.sticky-cta');
+if(hero&&sticky&&window.matchMedia('(max-width:767px)').matches){
+  new IntersectionObserver(function(e){sticky.classList.toggle('visible',!e[0].isIntersecting);},{threshold:0}).observe(hero);
+}
+if('IntersectionObserver' in window){
+  var t=document.querySelectorAll('.service-item, .photo, .contact-phone-block, .contact-addr');
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.style.animation='fade-up .45s ease forwards';io.unobserve(e.target);}});},{threshold:0.08});
+  t.forEach(function(el){el.style.opacity='0';io.observe(el);});
+}
+})();
+</script>
+</body>
+</html>`;
 }
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 3. WELLNESS — New layout · White · Sage #6B7C5A
+// 3. MINIMALIST  ·  Accent #6B7C5A (sage)
+//    Spas, massage, wellness — calm, restorative experience.
+//    Source: template_minimalist_v2.html
+//    NOTE: hero overflow is visible so the floating card can bleed below.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function templateWellness(place, copy, photos) {
-  const {name,shortName,phone,address,rating,reviewCount,reviews,hours} = extractPlaceData(place);
-  const review = bestReview(reviews);
-  const services = copy.services || [];
-  const BG='#FFFFFF',SURFACE='#F5F7F4',ACCENT='#6B7C5A',TEXT='#1A1F18',MUTED='#7A8572',BORDER='#E0E8DA';
+function templateMinimalist(place, copy, photos) {
+  const { name, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
+  const allHours = place.regularOpeningHours?.weekdayDescriptions || [];
+  const review   = bestReview(reviews);
+  const services = _normalizeServices(copy);
+  const tagline  = (copy && copy.tagline) || 'Calm, restorative care in a private setting.';
+  const cp       = cleanPhone(phone);
+  const cityStr  = _city(address);
+  const heroAlt  = `${esc(name)} interior`;
+  const mapsUrl  = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
+  const hoursRows = _formatHoursRows(allHours);
+  const heroImg  = photos?.hero || (photos?.gallery && photos.gallery[0]) || '';
+  // photo grid uses gallery[0..2] (large + 2 small) — pad gracefully
+  const photoGrid = _padPhotos((photos && photos.gallery) || [], 3);
+  const ratingTxt = rating.toFixed(1);
 
-  return wrapHTML(name,
-    'family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Nunito:wght@400;600;700',
-    `body{background:${BG};color:${TEXT};font-family:'Nunito',sans-serif;}`,
-    `<div style="padding:20px 36px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${BORDER};">
+  const servicesHTML = services.length ? `
+<section class="sec" aria-labelledby="services-title">
+  <p class="sec-eyebrow">Treatments</p>
+  <h2 class="sec-title" id="services-title">What we offer.</h2>
+  <ul class="service-list" role="list">
+    ${services.map((s, i) => `
+    <li class="service-item">
+      <span class="service-num">${String(i + 1).padStart(2, '0')}</span>
+      <div class="service-name">${esc(s.name)}</div>
+      ${s.desc ? `<div class="service-desc">${esc(s.desc)}</div>` : ''}
+    </li>`).join('')}
+  </ul>
+</section>` : '';
+
+  const photosHTML = photoGrid.length ? `
+<section class="photos" aria-label="Our space">
+  <div class="photo-grid" role="region" aria-label="${esc(name)} photo gallery">
+    <div class="pg-main"><img src="${photoGrid[0]}" alt="${esc(name)} space" loading="lazy" decoding="async"></div>
+    ${photoGrid[1] ? `<div class="pg-sm"><img src="${photoGrid[1]}" alt="${esc(name)} detail 1" loading="lazy" decoding="async"></div>` : ''}
+    ${photoGrid[2] ? `<div class="pg-sm"><img src="${photoGrid[2]}" alt="${esc(name)} detail 2" loading="lazy" decoding="async"></div>` : ''}
+  </div>
+</section>` : '';
+
+  const quoteHTML = review.text ? `
+<section class="quote" aria-labelledby="quote-title">
+  <div class="quote-line" aria-hidden="true"></div>
+  <div class="quote-stars" aria-label="${review.rating} stars">${stars(review.rating)}</div>
+  <blockquote>
+    <p class="quote-text" id="quote-title">"${esc(review.text)}"</p>
+    <footer><cite class="quote-author">— ${esc(review.author)}</cite></footer>
+  </blockquote>
+</section>` : '';
+
+  const hoursHTML = hoursRows.length ? `
+<div>
+  <h3 class="hours-title">Hours</h3>
+  <ul class="hours-list" aria-label="Business hours">
+    ${hoursRows.map(r => `
+    <li class="hours-row${r.isToday ? ' today' : ''}">
+      <span class="hours-day">${esc(r.day)}</span>
+      <span class="hours-time${r.isClosed ? ' closed' : ''}">${esc(r.time) || 'Closed'}</span>
+    </li>`).join('')}
+  </ul>
+</div>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="${esc(name)} — ${esc(tagline)}">
+<title>${esc(name)}</title>
+${FAVICON}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="${_FONTS}" rel="stylesheet">
+<style>
+:root{
+  --accent:#6B7C5A;--ink:#1A1916;--white:#FFFFFF;--warm:#F8F5F0;
+  --stone:#E8E3DB;--muted:#8C8880;
+  --font:'Plus Jakarta Sans',sans-serif;--pad:22px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+body{font-family:var(--font);background:var(--warm);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+a{text-decoration:none;color:inherit;}
+img{display:block;max-width:100%;}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+:focus{outline:none;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:18px var(--pad);display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;}
+nav.scrolled{background:rgba(248,245,240,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--stone);}
+.nav-logo{font-size:15px;font-weight:800;font-style:italic;letter-spacing:-.03em;color:var(--white);transition:color .3s;}
+nav.scrolled .nav-logo{color:var(--ink);}
+.nav-book{font-size:12px;font-weight:600;color:var(--white);padding:8px 16px;border:1px solid rgba(255,255,255,.35);border-radius:999px;transition:all .2s;}
+nav.scrolled .nav-book{color:var(--ink);border-color:var(--stone);}
+.nav-book:hover{background:var(--ink);color:var(--white);border-color:var(--ink);}
+
+/* HERO — overflow visible so floating card bleeds below */
+.hero{position:relative;height:100svh;min-height:600px;}
+.hero-media{position:absolute;inset:0;overflow:hidden;}
+.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(160deg,rgba(26,25,22,.5) 0%,rgba(26,25,22,.25) 40%,rgba(26,25,22,.75) 100%);}
+.hero-content{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:80px var(--pad) 80px;pointer-events:none;}
+.hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:12px;}
+.hero-name{font-size:clamp(42px,11vw,68px);font-weight:800;font-style:italic;letter-spacing:-.04em;line-height:.93;color:var(--white);}
+.hero-sub{font-size:14px;font-weight:400;color:rgba(255,255,255,.45);margin-top:14px;max-width:240px;line-height:1.65;}
+
+/* FLOATING CARD — outside hero */
+.float-card-wrap{padding:0 var(--pad);margin-top:-32px;position:relative;z-index:10;margin-bottom:40px;}
+.float-card{background:var(--white);border-radius:16px;padding:16px 18px;box-shadow:0 8px 32px rgba(26,25,22,.12);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.fc-info{min-width:0;}
+.fc-rating{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+.fc-stars{color:#B8A06A;font-size:12px;letter-spacing:1px;flex-shrink:0;}
+.fc-score{font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;}
+.fc-reviews{font-size:11px;color:var(--muted);white-space:nowrap;}
+.fc-location{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fc-btn{background:var(--accent);color:var(--white);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:10px 16px;border-radius:999px;white-space:nowrap;flex-shrink:0;transition:opacity .15s;}
+.fc-btn:active{opacity:.85;}
+
+/* SHARED */
+.sec{padding:0 var(--pad) 56px;}
+.sec-eyebrow{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.sec-title{font-size:clamp(26px,6vw,36px);font-weight:800;font-style:italic;letter-spacing:-.04em;line-height:1.05;color:var(--ink);margin-bottom:28px;}
+
+/* SERVICES */
+.service-list{list-style:none;border-top:1px solid var(--stone);}
+.service-item{padding:16px 0;border-bottom:1px solid var(--stone);}
+.service-num{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.1em;display:block;margin-bottom:3px;}
+.service-name{font-size:15px;font-weight:700;letter-spacing:-.025em;color:var(--ink);margin-bottom:3px;}
+.service-desc{font-size:13px;color:var(--muted);line-height:1.6;}
+
+/* PHOTOS */
+.photos{padding:0;margin-bottom:56px;}
+.photo-grid{display:grid;grid-template-columns:3fr 2fr;grid-template-rows:1fr 1fr;gap:4px;height:320px;}
+.pg-main{grid-row:1 / 3;overflow:hidden;background:var(--stone);}
+.pg-sm{overflow:hidden;background:var(--stone);}
+.pg-main img,.pg-sm img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease;}
+.pg-main:hover img,.pg-sm:hover img{transform:scale(1.04);}
+
+/* QUOTE */
+.quote{background:var(--ink);padding:56px var(--pad);margin-bottom:0;}
+.quote-line{width:28px;height:2px;background:var(--accent);border-radius:2px;margin-bottom:20px;}
+.quote-text{font-size:clamp(18px,4.5vw,24px);font-weight:700;font-style:italic;letter-spacing:-.03em;line-height:1.4;color:var(--white);margin-bottom:14px;}
+.quote-author{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;}
+.quote-stars{color:#B8A06A;font-size:11px;letter-spacing:2px;margin-top:10px;margin-bottom:10px;}
+
+/* CONTACT */
+.contact{padding:56px var(--pad);}
+.contact-title{font-size:clamp(26px,6vw,36px);font-weight:800;font-style:italic;letter-spacing:-.04em;line-height:1.05;color:var(--ink);margin-bottom:20px;}
+.contact-phone{display:flex;align-items:center;gap:14px;background:var(--white);border:1px solid var(--stone);border-radius:14px;padding:18px;margin-bottom:10px;transition:border-color .2s;}
+.contact-phone:hover{border-color:var(--accent);}
+.phone-icon{width:40px;height:40px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.phone-icon svg{width:17px;height:17px;stroke:var(--white);fill:none;stroke-width:2;stroke-linecap:round;}
+.phone-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:2px;}
+.phone-num{font-size:19px;font-weight:800;letter-spacing:-.03em;color:var(--ink);}
+.contact-addr{display:flex;align-items:flex-start;gap:14px;background:var(--white);border:1px solid var(--stone);border-radius:14px;padding:18px;margin-bottom:32px;}
+.addr-icon{width:40px;height:40px;background:var(--stone);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.addr-icon svg{width:17px;height:17px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;}
+.addr-text{font-size:14px;color:var(--ink);line-height:1.6;}
+.addr-dir{display:inline-block;margin-top:5px;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;}
+.hours-title{font-size:16px;font-weight:800;letter-spacing:-.025em;margin-bottom:12px;}
+.hours-list{list-style:none;border-top:1px solid var(--stone);}
+.hours-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--stone);font-size:13px;}
+.hours-row:last-child{border:none;}
+.hours-day{color:var(--muted);}
+.hours-time{font-weight:600;color:var(--ink);}
+.hours-time.closed{color:var(--muted);font-weight:400;}
+.hours-row.today .hours-day{color:var(--ink);font-weight:700;}
+
+footer{background:var(--ink);padding:18px var(--pad);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.foot-name{font-size:14px;font-weight:800;font-style:italic;letter-spacing:-.03em;color:rgba(255,255,255,.2);}
+.foot-credit{font-size:11px;color:rgba(255,255,255,.1);}
+
+.sticky-cta{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--warm);border-top:1px solid var(--stone);padding:12px var(--pad) max(12px,env(safe-area-inset-bottom));}
+.sticky-cta.visible{display:flex;gap:10px;}
+.sticky-reserve{flex:1;display:flex;align-items:center;justify-content:center;background:var(--accent);color:var(--white);font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:14px;border-radius:999px;}
+.sticky-phone{display:flex;align-items:center;justify-content:center;padding:14px 16px;background:var(--white);border:1px solid var(--stone);border-radius:999px;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;}
+
+@keyframes fade-up{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+.fu{opacity:0;animation:fade-up .55s ease forwards;}
+.d1{animation-delay:.12s;}.d2{animation-delay:.24s;}.d3{animation-delay:.36s;}
+
+@media(min-width:768px){
+  :root{--pad:48px;}
+  .sticky-cta{display:none!important;}
+  .hero-content{max-width:560px;padding-left:calc(var(--pad) + 8px);}
+  .hero-overlay{background:linear-gradient(to right,rgba(26,25,22,.88) 0%,rgba(26,25,22,.55) 45%,rgba(26,25,22,.1) 75%,transparent 100%);}
+  .float-card-wrap{max-width:420px;}
+  .sec{max-width:860px;margin:0 auto;padding-left:var(--pad);padding-right:var(--pad);}
+  .service-list{display:grid;grid-template-columns:1fr 1fr;gap:0 56px;}
+  .service-item:nth-child(1),.service-item:nth-child(2){border-top:1px solid var(--stone);}
+  .photo-grid{height:440px;}
+  .contact{max-width:860px;margin:0 auto;}
+  .contact-layout{display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+  .contact-title{grid-column:1 / 3;}
+}
+@media(min-width:1024px){
+  .hero-content{padding-left:80px;}
+  .hero-name{font-size:76px;}
+}
+</style>
+</head>
+<body>
+<a class="visually-hidden" href="#main">Skip to main content</a>
+
+<nav id="nav" role="banner">
+  <span class="nav-logo">${esc(name)}</span>
+  ${phone ? `<a href="tel:${cp}" class="nav-book">Reserve a visit</a>` : ''}
+</nav>
+
+<main id="main">
+<header class="hero">
+  <div class="hero-media" aria-hidden="true">
+    ${heroImg ? `<img class="hero-img" src="${heroImg}" alt="${heroAlt}" fetchpriority="high" decoding="async">` : ''}
+    <div class="hero-overlay"></div>
+  </div>
+  <div class="hero-content">
+    <p class="hero-eyebrow fu">${esc(cityStr || 'Local')}</p>
+    <h1 class="hero-name fu d1">${esc(name)}</h1>
+    <p class="hero-sub fu d2">${esc(tagline)}</p>
+  </div>
+</header>
+
+<div class="float-card-wrap fu d3">
+  <div class="float-card" role="complementary">
+    <div class="fc-info">
+      <div class="fc-rating" role="img" aria-label="${ratingTxt} stars, ${reviewCount} reviews">
+        <span class="fc-stars" aria-hidden="true">${stars(rating)}</span>
+        <span class="fc-score">${ratingTxt}</span>
+        <span class="fc-reviews">&nbsp;· ${reviewCount} reviews</span>
+      </div>
+      ${cityStr ? `<div class="fc-location">📍 ${esc(cityStr)}</div>` : ''}
+    </div>
+    ${phone ? `<a href="tel:${cp}" class="fc-btn" aria-label="Reserve — call ${esc(phone)}">Reserve →</a>` : ''}
+  </div>
+</div>
+
+${servicesHTML}
+${photosHTML}
+${quoteHTML}
+
+<section class="contact" id="contact" aria-labelledby="contact-title">
+  <h2 class="contact-title" id="contact-title">Come in.</h2>
+  <div class="contact-layout">
     <div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;letter-spacing:.04em;color:${TEXT};">${esc(name)}</div>
-      <div style="font-size:11px;color:${MUTED};letter-spacing:.08em;margin-top:3px;">${esc(copy.tagline||'')}</div>
+      ${phone ? `<a href="tel:${cp}" class="contact-phone" aria-label="Call ${esc(name)}">
+        <div class="phone-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg></div>
+        <div>
+          <div class="phone-label">Call or text</div>
+          <div class="phone-num">${esc(phone)}</div>
+        </div>
+      </a>` : ''}
+      ${address ? `<address style="font-style:normal;">
+        <div class="contact-addr">
+          <div class="addr-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div>
+            <div class="addr-text">${esc(address)}</div>
+            <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="addr-dir">Get directions →</a>
+          </div>
+        </div>
+      </address>` : ''}
     </div>
-    <div style="display:flex;align-items:center;gap:20px;">
-      <span style="font-size:14px;color:${MUTED};" class="mob-hide">${esc(phone)}</span>
-      <a href="${secureSiteUrl(place.id)}" style="background:${ACCENT};color:#fff;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:700;">SECURE MY SITE</a>
-    </div>
+    ${hoursHTML}
   </div>
-  <div style="position:relative;min-height:540px;display:flex;align-items:flex-end;">
-    ${photos.hero?`<img src="${photos.hero}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy"/><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(20,28,16,.85) 0%,rgba(20,28,16,.35) 50%,transparent 100%);"></div>`:`<div style="position:absolute;inset:0;background:linear-gradient(135deg,${ACCENT},#4a5c3a);"></div><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(20,28,16,.7) 0%,transparent 60%);"></div>`}
-    <div style="position:relative;z-index:2;padding:0 36px 52px;max-width:720px;" class="mob-pad">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;" class="fu"><span style="color:#FFD700;font-size:16px;">${stars(rating)}</span><span style="color:rgba(255,255,255,.7);font-size:13px;">${rating} · ${reviewCount} reviews</span></div>
-      <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.08;color:#fff;margin-bottom:18px;" class="fu d1">${headline(copy.hero_headline,'#C8D8B8')}</h1>
-      <p style="font-size:16px;color:rgba(255,255,255,.65);max-width:460px;line-height:1.8;margin-bottom:32px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
-      <div style="display:flex;gap:14px;align-items:center;" class="fu d3">
-        <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:13px 28px;border-radius:4px;font-size:14px;font-weight:700;">Schedule a Session</a>
-        <a href="tel:${cleanPhone(phone)}" style="border:1px solid rgba(255,255,255,.35);color:#fff;padding:13px 20px;border-radius:4px;font-size:14px;" class="mob-hide">${esc(phone)}</a>
-      </div>
-    </div>
-  </div>
-  <div style="background:${SURFACE};padding:52px 36px;border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
-    <div style="max-width:860px;margin:0 auto;">
-      <h2 style="font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:700;color:${TEXT};margin-bottom:8px;">${esc(copy.services_label||'Our Services')}</h2>
-      <p style="font-size:14px;color:${MUTED};margin-bottom:32px;line-height:1.7;">${esc(copy.hero_sub||'Every session tailored to you.')}</p>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;" class="g3">
-        ${services.map((s,i)=>`<div style="background:${BG};border-radius:10px;padding:22px;border:1px solid ${BORDER};transition:border-color .2s;" onmouseover="this.style.borderColor='${ACCENT}'" onmouseout="this.style.borderColor='${BORDER}'"><div style="width:28px;height:3px;background:${ACCENT};border-radius:2px;margin-bottom:12px;"></div><div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;margin-bottom:5px;color:${TEXT};">${esc(s)}</div>${copy.service_descs?.[i]?`<div style="font-size:12px;color:${MUTED};line-height:1.6;">${esc(copy.service_descs[i])}</div>`:''}</div>`).join('')}
-      </div>
-    </div>
-  </div>
-  <div style="padding:60px 36px;max-width:640px;margin:0 auto;" class="mob-pad">
-    <div style="border-left:3px solid ${ACCENT};padding-left:28px;">
-      <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3vw,24px);font-style:italic;line-height:1.75;color:${TEXT};margin-bottom:14px;">"${esc(review.text)}"</p>
-      <p style="font-size:12px;color:${MUTED};letter-spacing:.06em;">- ${esc(review.author)}</p>
-    </div>
-  </div>
-  ${galleryStrip(photos.gallery,BORDER,name)}
-  <div style="background:${SURFACE};padding:36px;border-top:1px solid ${BORDER};" class="mob-pad">
-    <div style="max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;" class="gfooter">
-      <div><p style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:700;color:${TEXT};margin-bottom:9px;">Find Us</p><p style="font-size:13px;color:${MUTED};line-height:1.9;">${esc(address)}</p></div>
-      <div><p style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:700;color:${TEXT};margin-bottom:9px;">Hours</p>${hours.map(h=>`<p style="font-size:12px;color:${MUTED};line-height:1.9;">${esc(h)}</p>`).join('')}</div>
-      <div><p style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:700;color:${TEXT};margin-bottom:9px;">Call or Text</p><a href="tel:${cleanPhone(phone)}" style="font-size:19px;font-weight:700;color:${ACCENT};">${esc(phone)}</a><div style="margin-top:16px;font-size:10px;color:#CBD5E1;">A HelloSite · GetHelloSite.com</div></div>
-    </div>
-  </div>
-  ${claimCTA(ACCENT, place.id)}`);
+</section>
+</main>
+
+<footer>
+  <span class="foot-name">${esc(name)}</span>
+  <span class="foot-credit">A HelloSite · gethellosite.com</span>
+</footer>
+
+${phone ? `<div class="sticky-cta" role="complementary" aria-label="Quick booking">
+  <a href="tel:${cp}" class="sticky-reserve">Reserve a visit</a>
+  <a href="tel:${cp}" class="sticky-phone">${esc(phone)}</a>
+</div>` : ''}
+
+${claimCTA('var(--accent)', place.id)}
+
+<script>
+(function(){'use strict';
+var nav=document.getElementById('nav');
+window.addEventListener('scroll',function(){nav.classList.toggle('scrolled',window.scrollY>40);},{passive:true});
+var hero=document.querySelector('.hero'),sticky=document.querySelector('.sticky-cta');
+if(hero&&sticky&&window.matchMedia('(max-width:767px)').matches){
+  new IntersectionObserver(function(e){sticky.classList.toggle('visible',!e[0].isIntersecting);},{threshold:0}).observe(hero);
+}
+if('IntersectionObserver' in window){
+  var t=document.querySelectorAll('.service-item, .pg-main, .pg-sm, .contact-phone, .contact-addr');
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.style.animation='fade-up .5s ease forwards';io.unobserve(e.target);}});},{threshold:0.06});
+  t.forEach(function(el){el.style.opacity='0';io.observe(el);});
+}
+})();
+</script>
+</body>
+</html>`;
 }
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 4. PET — Orig layout · White #FFFFFF · Royal Blue #2B5FC7
+// 4. INFORMATIVE  ·  Accent #1D4ED8 (blue)
+//    Accountants, lawyers, insurance, real estate, tailors, retail.
+//    Source: template_informative_v1.html
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function templatePet(place, copy, photos) {
-  const {name,shortName,phone,address,rating,reviewCount,reviews,hours} = extractPlaceData(place);
-  const review = bestReview(reviews);
-  const services = copy.services || [];
+function templateInformative(place, copy, photos) {
+  const { name, phone, address, rating, reviewCount, reviews } = extractPlaceData(place);
+  const allHours = place.regularOpeningHours?.weekdayDescriptions || [];
+  const review   = bestReview(reviews);
+  const services = _normalizeServices(copy);
+  const tagline  = (copy && copy.tagline) || `Trusted local service in ${_city(address) || 'your area'}.`;
+  const cp       = cleanPhone(phone);
+  const cityStr  = _city(address);
+  const heroAlt  = `${esc(name)} office`;
+  const mapsUrl  = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
+  const hoursRows = _formatHoursRows(allHours);
+  const heroImg  = photos?.hero || (photos?.gallery && photos.gallery[0]) || '';
+  const featurePhoto = (photos?.gallery && photos.gallery[1]) || (photos?.gallery && photos.gallery[0]) || photos?.hero || '';
+  const ratingTxt = rating.toFixed(1);
+  // Decorative emojis cycle through a fixed set — purely visual, not data.
+  const ICONS = ['🧾','📊','💼','📋','🏛️','📞'];
 
-  const BG='#FFFFFF', SURFACE='#F4F6FB', ACCENT='#2B5FC7';
-  const TEXT='#111827', MUTED='#6B7280', BORDER='#DBEAFE';
-
-  return wrapHTML(name,
-    'family=Nunito:wght@400;600;700;800',
-    `body{background:${BG};color:${TEXT};font-family:'Nunito',sans-serif;}`,
-    `
-  <div style="background:${ACCENT};padding:9px 24px;text-align:center;">
-    <span style="font-size:13px;font-weight:700;color:#fff;letter-spacing:.04em;">🐾 Now Accepting New Clients · <a href="tel:${cleanPhone(phone)}" style="color:#fff;">${esc(phone)}</a></span>
+  const servicesHTML = services.length ? `
+<section class="services" id="services" aria-labelledby="services-title">
+  <div class="services-inner">
+    <p class="sec-label">What we do</p>
+    <h2 class="sec-title" id="services-title">Everything your business needs.</h2>
+    <div class="service-grid">
+      ${services.map((s, i) => `
+      <div class="service-card">
+        <div class="service-icon" aria-hidden="true">${ICONS[i % ICONS.length]}</div>
+        <div class="service-name">${esc(s.name)}</div>
+        ${s.desc ? `<div class="service-desc">${esc(s.desc)}</div>` : ''}
+      </div>`).join('')}
+    </div>
   </div>
+</section>` : '';
 
-  <div style="padding:16px 32px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid ${BORDER};">
+  const featureHTML = (featurePhoto || review.text) ? `
+<section class="feature" aria-label="Client review">
+  <div class="feature-inner">
+    ${featurePhoto ? `<div class="feature-photo"><img src="${featurePhoto}" alt="${esc(name)} workspace" loading="lazy" decoding="async"></div>` : ''}
+    ${review.text ? `<div class="review-card">
+      <div class="review-stars" aria-label="${review.rating} stars">${stars(review.rating)}</div>
+      <blockquote>
+        <p class="review-text">"${esc(review.text)}"</p>
+        <footer><cite class="review-author">— ${esc(review.author)}</cite></footer>
+      </blockquote>
+    </div>` : ''}
+  </div>
+</section>` : '';
+
+  const hoursHTML = hoursRows.length ? `
+<div>
+  <h3 class="hours-title">Office hours</h3>
+  <ul class="hours-list" aria-label="Business hours">
+    ${hoursRows.map(r => `
+    <li class="hours-row${r.isToday ? ' today' : ''}">
+      <span class="hours-day">${esc(r.day)}</span>
+      <span class="hours-time${r.isClosed ? ' closed' : ''}">${esc(r.time) || 'Closed'}</span>
+    </li>`).join('')}
+  </ul>
+</div>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="${esc(name)} — ${esc(tagline)}">
+<title>${esc(name)}</title>
+${FAVICON}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="${_FONTS}" rel="stylesheet">
+<style>
+:root{
+  --accent:#1D4ED8;--ink:#0F172A;--white:#FFFFFF;--off:#F8FAFC;
+  --border:#E2E8F0;--muted:#64748B;--light:#EFF6FF;
+  --font:'Plus Jakarta Sans',sans-serif;
+  --pad:20px;--r:10px;--r-lg:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+body{font-family:var(--font);background:var(--off);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+a{text-decoration:none;color:inherit;}
+img{display:block;max-width:100%;}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+:focus{outline:none;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px;}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:200;background:var(--white);border-bottom:1px solid var(--border);padding:0 var(--pad);height:56px;display:flex;align-items:center;justify-content:space-between;}
+.nav-logo{font-size:16px;font-weight:800;letter-spacing:-.03em;color:var(--ink);}
+.nav-links{display:none;}
+.nav-cta{font-size:13px;font-weight:700;color:var(--white);background:var(--accent);padding:8px 16px;border-radius:var(--r);transition:opacity .15s;}
+.nav-cta:hover{opacity:.88;}
+
+/* HERO */
+.hero{background:var(--white);overflow:hidden;}
+.hero-inner{max-width:1080px;margin:0 auto;padding:36px var(--pad) 0;}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:7px;background:var(--light);border:1px solid #BFDBFE;border-radius:999px;padding:5px 12px;margin-bottom:20px;}
+.hero-eyebrow-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;flex-shrink:0;}
+.hero-eyebrow-text{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.06em;white-space:nowrap;}
+h1{font-size:clamp(30px,7vw,48px);font-weight:800;letter-spacing:-.04em;line-height:1.05;color:var(--ink);margin-bottom:16px;}
+.hero-sub{font-size:15px;color:var(--muted);line-height:1.7;max-width:480px;margin-bottom:28px;}
+.hero-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:0;}
+.btn-primary{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:var(--white);font-size:14px;font-weight:700;padding:13px 22px;border-radius:var(--r);transition:opacity .15s;-webkit-tap-highlight-color:transparent;}
+.btn-primary:active{opacity:.85;}
+.btn-primary svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;}
+.btn-secondary{display:inline-flex;align-items:center;gap:7px;background:var(--off);color:var(--ink);font-size:14px;font-weight:600;padding:13px 20px;border-radius:var(--r);border:1px solid var(--border);}
+.hero-trust{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;}
+.trust-badge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted);}
+.trust-badge svg{width:14px;height:14px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;flex-shrink:0;}
+.hero-photo{margin:16px calc(var(--pad) * -1) 0;overflow:hidden;aspect-ratio:3/2;}
+.hero-photo img{width:100%;height:100%;object-fit:cover;object-position:center 25%;}
+
+/* RATING BAR */
+.rating-bar{background:var(--ink);padding:14px var(--pad);display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;}
+.rb-left{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;}
+.rb-stars{color:#FFC940;font-size:13px;letter-spacing:2px;flex-shrink:0;}
+.rb-score{font-size:13px;font-weight:700;color:var(--white);flex-shrink:0;}
+.rb-count{font-size:12px;color:rgba(255,255,255,.4);white-space:nowrap;}
+.rb-sep{width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;}
+.rb-location{font-size:12px;color:rgba(255,255,255,.4);white-space:nowrap;}
+.rb-cta{flex-shrink:0;font-size:12px;font-weight:700;color:var(--white);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);padding:6px 14px;border-radius:var(--r);white-space:nowrap;}
+
+/* SERVICES */
+.services{padding:52px var(--pad);}
+.services-inner{max-width:1080px;margin:0 auto;}
+.sec-label{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.sec-title{font-size:clamp(24px,5vw,34px);font-weight:800;letter-spacing:-.035em;line-height:1.1;color:var(--ink);margin-bottom:28px;}
+.service-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.service-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;}
+.service-icon{font-size:22px;margin-bottom:10px;}
+.service-name{font-size:14px;font-weight:800;letter-spacing:-.02em;color:var(--ink);margin-bottom:5px;}
+.service-desc{font-size:12px;color:var(--muted);line-height:1.6;}
+
+/* FEATURE */
+.feature{position:relative;}
+.feature-photo{aspect-ratio:3/2;overflow:hidden;background:var(--border);}
+.feature-photo img{width:100%;height:100%;object-fit:cover;}
+.review-card{background:var(--white);border:1px solid var(--border);border-top:none;padding:24px var(--pad);}
+.review-stars{color:#FFC940;font-size:12px;letter-spacing:2px;margin-bottom:10px;}
+.review-text{font-size:clamp(14px,3vw,17px);font-weight:600;letter-spacing:-.02em;line-height:1.5;color:var(--ink);margin-bottom:10px;font-style:italic;}
+.review-author{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+
+/* CONTACT */
+.contact{padding:52px var(--pad);max-width:1080px;margin:0 auto;}
+.contact-title{font-size:clamp(24px,5vw,34px);font-weight:800;letter-spacing:-.035em;color:var(--ink);margin-bottom:20px;}
+.contact-phone{background:var(--accent);border-radius:var(--r-lg);padding:20px;display:flex;align-items:center;gap:14px;margin-bottom:10px;transition:opacity .15s;}
+.contact-phone:active{opacity:.88;}
+.contact-phone-icon{width:44px;height:44px;background:rgba(255,255,255,.15);border-radius:var(--r);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.contact-phone-icon svg{width:20px;height:20px;stroke:var(--white);fill:none;stroke-width:2;stroke-linecap:round;}
+.contact-phone-label{font-size:10px;font-weight:600;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.12em;margin-bottom:2px;}
+.contact-phone-num{font-size:22px;font-weight:800;letter-spacing:-.03em;color:var(--white);}
+.contact-addr{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px;display:flex;align-items:flex-start;gap:12px;margin-bottom:32px;}
+.addr-icon{width:36px;height:36px;background:var(--off);border-radius:var(--r);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.addr-icon svg{width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;}
+.addr-text{font-size:14px;color:var(--ink);line-height:1.6;}
+.addr-dir{display:inline-block;margin-top:5px;font-size:12px;font-weight:700;color:var(--accent);}
+.hours-title{font-size:16px;font-weight:800;letter-spacing:-.025em;margin-bottom:12px;}
+.hours-list{list-style:none;border-top:1px solid var(--border);}
+.hours-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.hours-row:last-child{border:none;}
+.hours-day{color:var(--muted);}
+.hours-time{font-weight:600;color:var(--ink);}
+.hours-time.closed{color:var(--muted);font-weight:400;}
+.hours-row.today .hours-day{color:var(--ink);font-weight:700;}
+.hours-row.today .hours-time{color:var(--accent);}
+
+footer{background:var(--ink);padding:18px var(--pad);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.foot-logo{font-size:14px;font-weight:800;letter-spacing:-.02em;color:rgba(255,255,255,.25);}
+.foot-credit{font-size:11px;color:rgba(255,255,255,.1);}
+
+.sticky-cta{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--white);border-top:1px solid var(--border);padding:12px var(--pad) max(12px,env(safe-area-inset-bottom));}
+.sticky-cta.visible{display:flex;gap:10px;}
+.sticky-call{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:var(--white);font-size:14px;font-weight:700;padding:14px;border-radius:var(--r);}
+.sticky-call svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;}
+.sticky-hours{display:flex;align-items:center;justify-content:center;padding:14px 16px;background:var(--off);border:1px solid var(--border);border-radius:var(--r);font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;}
+
+@keyframes fade-up{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+.fu{opacity:0;animation:fade-up .5s ease forwards;}
+.d1{animation-delay:.1s;}.d2{animation-delay:.2s;}.d3{animation-delay:.3s;}.d4{animation-delay:.4s;}
+
+@media(min-width:768px){
+  :root{--pad:40px;}
+  .sticky-cta{display:none!important;}
+  .nav-links{display:flex;gap:24px;}
+  .nav-link{font-size:13px;color:var(--muted);font-weight:500;}
+  .nav-link:hover{color:var(--ink);}
+  .hero-inner{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;padding-bottom:48px;}
+  .hero-photo{margin:0;border-radius:var(--r-lg);aspect-ratio:4/3;height:auto;overflow:hidden;}
+  .service-grid{grid-template-columns:repeat(3,1fr);}
+  .feature-inner{display:grid;grid-template-columns:1fr 1fr;}
+  .feature-photo{aspect-ratio:unset;height:100%;min-height:300px;}
+  .review-card{border-top:1px solid var(--border);border-left:none;display:flex;flex-direction:column;justify-content:center;padding:40px;}
+  .contact-layout{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;}
+  .contact-title{grid-column:1 / 3;}
+}
+@media(min-width:1024px){.service-grid{grid-template-columns:repeat(3,1fr);}}
+</style>
+</head>
+<body>
+<a class="visually-hidden" href="#main">Skip to main content</a>
+
+<nav role="banner">
+  <div class="nav-logo">${esc(name)}</div>
+  <div class="nav-links" aria-label="Page navigation">
+    ${services.length ? `<a href="#services" class="nav-link">Services</a>` : ''}
+    <a href="#contact" class="nav-link">Hours &amp; Contact</a>
+  </div>
+  ${phone ? `<a href="tel:${cp}" class="nav-cta">Get in touch</a>` : ''}
+</nav>
+
+<main id="main">
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="hero-eyebrow fu">
+        <span class="hero-eyebrow-dot" aria-hidden="true"></span>
+        <span class="hero-eyebrow-text">${esc(cityStr || 'Local')}</span>
+      </div>
+      <h1 class="fu d1">${esc(name)}</h1>
+      <p class="hero-sub fu d2">${esc(tagline)}</p>
+      <div class="hero-ctas fu d3">
+        ${phone ? `<a href="tel:${cp}" class="btn-primary" aria-label="Call ${esc(name)} at ${esc(phone)}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+          ${esc(phone)}
+        </a>` : ''}
+        ${services.length ? `<a href="#services" class="btn-secondary">Our services →</a>` : ''}
+      </div>
+      <div class="hero-trust fu d4">
+        <div class="trust-badge">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          ${ratingTxt} · ${reviewCount} reviews
+        </div>
+        ${cityStr ? `<div class="trust-badge">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${esc(cityStr)}
+        </div>` : ''}
+      </div>
+    </div>
+    ${heroImg ? `<div class="hero-photo">
+      <img src="${heroImg}" alt="${heroAlt}" fetchpriority="high" decoding="async">
+    </div>` : ''}
+  </div>
+</section>
+
+<div class="rating-bar" role="img" aria-label="${ratingTxt} stars, ${reviewCount} Google reviews${cityStr ? ', ' + cityStr : ''}">
+  <div class="rb-left">
+    <span class="rb-stars" aria-hidden="true">${stars(rating)}</span>
+    <span class="rb-score">${ratingTxt}</span>
+    <span class="rb-count">· ${reviewCount} Google reviews</span>
+    ${cityStr ? `<div class="rb-sep" aria-hidden="true"></div><span class="rb-location">📍 ${esc(cityStr)}</span>` : ''}
+  </div>
+  ${phone ? `<a href="tel:${cp}" class="rb-cta" aria-label="Call now">Call now →</a>` : ''}
+</div>
+
+${servicesHTML}
+${featureHTML}
+
+<section class="contact" id="contact" aria-labelledby="contact-title">
+  <h2 class="contact-title" id="contact-title">Get in touch.</h2>
+  <div class="contact-layout">
     <div>
-      <div style="font-size:21px;font-weight:800;">${esc(name)}</div>
-      <div style="font-size:12px;color:${MUTED};margin-top:2px;">${esc(copy.tagline||'')}</div>
+      ${phone ? `<a href="tel:${cp}" class="contact-phone" aria-label="Call ${esc(name)} at ${esc(phone)}">
+        <div class="contact-phone-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+        </div>
+        <div>
+          <div class="contact-phone-label">Call or text</div>
+          <div class="contact-phone-num">${esc(phone)}</div>
+        </div>
+      </a>` : ''}
+      ${address ? `<address style="font-style:normal;">
+        <div class="contact-addr">
+          <div class="addr-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div>
+            <div class="addr-text">${esc(address)}</div>
+            <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="addr-dir">Get directions →</a>
+          </div>
+        </div>
+      </address>` : ''}
     </div>
-    <a href="${secureSiteUrl(place.id)}" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:800;">SECURE MY SITE</a>
+    ${hoursHTML}
   </div>
+</section>
+</main>
 
-  <div style="padding:52px 32px 42px;max-width:860px;margin:0 auto;" class="mob-pad hero-pad">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;" class="fu">
-      <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
-      <span style="font-size:13px;color:${MUTED};font-weight:600;">${rating} stars · ${reviewCount} happy pet parents</span>
-    </div>
-    <h1 style="font-size:clamp(2.4rem,7vw,4.2rem);font-weight:800;line-height:1.08;margin-bottom:16px;" class="fu d1">
-      ${headline(copy.hero_headline,ACCENT)}
-    </h1>
-    <p style="font-size:16px;color:${MUTED};max-width:460px;line-height:1.75;margin-bottom:32px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
-    <a href="tel:${cleanPhone(phone)}" style="display:inline-block;background:${TEXT};color:${BG};padding:14px 30px;border-radius:30px;font-size:14px;font-weight:800;" class="fu d3">Schedule Your Pet's Visit →</a>
-  </div>
+<footer>
+  <span class="foot-logo">${esc(name)}</span>
+  <span class="foot-credit">A HelloSite · gethellosite.com</span>
+</footer>
 
-  ${photos.hero?`<div style="height:300px;overflow:hidden;border-top:2px solid ${BORDER};border-bottom:2px solid ${BORDER};"><img src="${photos.hero}" loading="lazy" style="width:100%;height:100%;object-fit:cover;"/></div>`:''}
+${phone ? `<div class="sticky-cta" role="complementary" aria-label="Quick contact">
+  <a href="tel:${cp}" class="sticky-call" aria-label="Call ${esc(name)}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10.5 19.79 19.79 0 01.22 1.89 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+    Call ${esc(phone)}
+  </a>
+  <a href="#contact" class="sticky-hours">Hours →</a>
+</div>` : ''}
 
-  <div style="background:${SURFACE};padding:44px 32px;border-top:2px solid ${BORDER};border-bottom:2px solid ${BORDER};" class="mob-pad" id="services">
-    <div style="max-width:860px;margin:0 auto;">
-      <h2 style="font-size:26px;font-weight:800;margin-bottom:8px;">${esc(copy.services_label||'Our Services')}</h2>
-      <p style="font-size:14px;color:${MUTED};margin-bottom:28px;line-height:1.7;">${esc(copy.hero_sub||'Professional grooming for every breed and size.')}</p>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" class="g3">
-        ${services.map((s,i)=>`
-        <div style="background:${BG};border-radius:14px;padding:18px 20px;border:2px solid ${BORDER};transition:border-color .2s;" onmouseover="this.style.borderColor='${ACCENT}'" onmouseout="this.style.borderColor='${BORDER}'">
-          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">${esc(s)}</div>
-          ${copy.service_descs?.[i]?`<div style="font-size:11px;color:${MUTED};line-height:1.5;">${esc(copy.service_descs[i])}</div>`:''}
-        </div>`).join('')}
-      </div>
-    </div>
-  </div>
+${claimCTA('var(--accent)', place.id)}
 
-  <div style="padding:52px 32px;max-width:620px;margin:0 auto;text-align:center;" class="mob-pad">
-    <div style="font-size:40px;color:${ACCENT};line-height:1;margin-bottom:10px;">🐾</div>
-    <p style="font-size:clamp(15px,2.5vw,19px);line-height:1.75;margin-bottom:14px;font-style:italic;">"${esc(review.text)}"</p>
-    <p style="font-size:12px;color:${MUTED};font-weight:600;">- ${esc(review.author)}</p>
-  </div>
-
-  ${galleryStrip(photos.gallery,BORDER,name)}
-
-  <div style="background:${SURFACE};padding:36px 32px;border-top:2px solid ${BORDER};" class="mob-pad">
-    <div style="max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;" class="gfooter">
-      <div><p style="font-size:11px;font-weight:800;color:${ACCENT};letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px;">Location</p><p style="font-size:13px;color:${MUTED};line-height:1.9;">${esc(address)}</p></div>
-      <div><p style="font-size:11px;font-weight:800;color:${ACCENT};letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px;">Hours</p>${hours.map(h=>`<p style="font-size:12px;color:${MUTED};line-height:1.9;">${esc(h)}</p>`).join('')}</div>
-      <div><p style="font-size:11px;font-weight:800;color:${ACCENT};letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px;">Call Us</p><a href="tel:${cleanPhone(phone)}" style="font-size:19px;font-weight:800;color:${ACCENT};">${esc(phone)}</a><div style="margin-top:16px;font-size:10px;color:#CBD5E1;">A HelloSite · GetHelloSite.com</div></div>
-    </div>
-  </div>
-
-  ${claimCTA(ACCENT, place.id)}`);
+<script>
+(function(){'use strict';
+var hero=document.querySelector('.hero'),sticky=document.querySelector('.sticky-cta');
+if(hero&&sticky&&window.matchMedia('(max-width:767px)').matches){
+  new IntersectionObserver(function(e){sticky.classList.toggle('visible',!e[0].isIntersecting);},{threshold:0}).observe(hero);
+}
+if('IntersectionObserver' in window){
+  var t=document.querySelectorAll('.service-card, .review-card, .contact-phone, .contact-addr');
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.style.animation='fade-up .45s ease forwards';io.unobserve(e.target);}});},{threshold:0.08});
+  t.forEach(function(el){el.style.opacity='0';io.observe(el);});
+}
+})();
+</script>
+</body>
+</html>`;
 }
 
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 5. RETAIL — Orig layout · White #FFFFFF · Burgundy #9B3054
-// ═══════════════════════════════════════════════════════════════════════════════
+// ─── TEMPLATE SELECTION ──────────────────────────────────────────────────────
+// Google Places returns place.types ordered most-to-least specific.
+// getTemplate() walks TYPE_MAP in priority order and returns the first match.
+// Falls back to "transactional" for unknown types (safe default).
 
-const RETAIL_SWATCHES=['#F9EEF0','#EAF0EA','#F0EAF4','#FFF3E8','#EAF0F8','#FFE8E8'];
+const TYPE_MAP = [
+  // ── Transactional ──────────────────────────────────────────────────
+  ['pet_groomer',             'transactional'],
+  ['barber_shop',             'transactional'],
+  ['nail_salon',              'transactional'],
+  ['hair_salon',              'transactional'],
+  ['hair_care',               'transactional'],
+  ['beauty_salon',            'transactional'], // lash, waxing, brow bars
+  // ── Minimalist ───────────────────────────────────────────────────
+  ['spa',                     'minimalist'],
+  ['massage_therapist',       'minimalist'],
+  // ── Bold ─────────────────────────────────────────────────────────
+  ['car_wash',                'bold'],          // auto detailing
+  ['car_repair',              'bold'],
+  ['electrician',             'bold'],
+  ['plumber',                 'bold'],
+  ['general_contractor',      'bold'],
+  ['roofing_contractor',      'bold'],
+  ['locksmith',               'bold'],
+  ['pest_control',            'bold'],
+  ['moving_company',          'bold'],
+  ['house_cleaning_service',  'bold'],
+  ['landscaper',              'bold'],
+  ['painter',                 'bold'],
+  // ── Informative ──────────────────────────────────────────────────
+  ['accounting',              'informative'],
+  ['tax_preparation_service', 'informative'],
+  ['notary_public',           'informative'],
+  ['tailor',                  'informative'],
+  ['lawyer',                  'informative'],
+  ['insurance_agency',        'informative'],
+  ['real_estate_agency',      'informative'],
+  ['clothing_store',          'informative'],
+  ['store',                   'informative'],
+];
 
-function templateRetail(place, copy, photos) {
-  const {name,shortName,phone,address,rating,reviewCount,reviews,hours} = extractPlaceData(place);
-  const review = bestReview(reviews);
-  const services = copy.services || [];
-
-  const BG='#FFFFFF', SURFACE='#FAF8F6', ACCENT='#9B3054';
-  const TEXT='#1A1212', MUTED='#8A7878', BORDER='#EDE5E5';
-
-  return wrapHTML(name,
-    'family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Jost:wght@400;500;600',
-    `body{background:${BG};color:${TEXT};font-family:'Jost',sans-serif;}@media(max-width:768px){.retail-hero-h1{line-height:1.25!important;}}`,
-    `
-  <div style="background:${ACCENT};padding:9px 24px;text-align:center;">
-    <span style="font-size:12px;font-weight:500;color:#fff;letter-spacing:.12em;text-transform:uppercase;">
-      Now open in your neighborhood · <a href="tel:${cleanPhone(phone)}" style="color:#fff;">${esc(phone)}</a>
-    </span>
-  </div>
-
-  <div style="padding:20px 36px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${BORDER};">
-    <div>
-      <div style="font-family:'Playfair Display',serif;font-size:23px;font-weight:800;letter-spacing:.02em;">${esc(name)}</div>
-      <div style="font-size:11px;color:${MUTED};letter-spacing:.1em;margin-top:3px;">${esc(copy.tagline||'')}</div>
-    </div>
-    <div style="display:flex;gap:24px;align-items:center;" class="mob-hide">
-      <a href="#services" style="font-size:13px;color:${MUTED};">Collections</a>
-      <a href="https://www.gethellosite.com/#demo" style="font-size:13px;color:${MUTED};">Visit Us</a>
-    </div>
-  </div>
-
-  <div style="padding:58px 36px 46px;max-width:860px;margin:0 auto;" class="mob-pad hero-pad">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;" class="fu">
-      <span style="color:${ACCENT};font-size:16px;">${stars(rating)}</span>
-      <span style="font-size:13px;color:${MUTED};">${rating} · ${reviewCount} reviews</span>
-    </div>
-    <h1 style="font-family:'Playfair Display',serif;font-size:clamp(42px,6.5vw,72px);font-weight:800;line-height:1.08;margin-bottom:20px;" class="fu d1 retail-hero-h1">
-      ${headline(copy.hero_headline,ACCENT)}
-    </h1>
-    <p style="font-size:16px;color:${MUTED};max-width:460px;line-height:1.8;margin-bottom:36px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
-    <div style="display:flex;gap:12px;" class="fu d3">
-      <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:13px 26px;border-radius:4px;font-size:13px;font-weight:600;letter-spacing:.04em;">Call Us - ${esc(phone)}</a>
-      <a href="https://maps.google.com/?q=${encodeURIComponent(address)}" target="_blank" style="background:transparent;border:1px solid ${BORDER};color:${MUTED};padding:13px 20px;border-radius:4px;font-size:13px;">Get Directions</a>
-    </div>
-  </div>
-
-  ${photos.hero?`<div style="height:320px;overflow:hidden;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};"><img src="${photos.hero}" loading="lazy" style="width:100%;height:100%;object-fit:cover;"/></div>`:''}
-
-  <div style="background:${SURFACE};padding:48px 36px;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
-    <div style="max-width:860px;margin:0 auto;">
-      <h2 style="font-family:'Playfair Display',serif;font-size:26px;font-weight:800;margin-bottom:28px;">${esc(copy.services_label||'What We Carry')}</h2>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" class="g3">
-        ${services.map((s,i)=>`
-        <div style="background:${RETAIL_SWATCHES[i%RETAIL_SWATCHES.length]};border-radius:10px;padding:26px 20px;border:1px solid ${BORDER};">
-          <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:700;margin-bottom:5px;">${esc(s)}</div>
-          ${copy.service_descs?.[i]?`<div style="font-size:12px;color:${MUTED};">${esc(copy.service_descs[i])}</div>`:''}
-        </div>`).join('')}
-      </div>
-      ${copy.services_sub?`<p style="font-family:'Playfair Display',serif;font-style:italic;font-size:16px;color:${MUTED};margin-top:28px;text-align:center;">${esc(copy.services_sub)}</p>`:''}
-    </div>
-  </div>
-
-  <div style="padding:56px 36px;max-width:640px;margin:0 auto;text-align:center;" class="mob-pad">
-    <div style="width:48px;height:2px;background:${ACCENT};margin:0 auto 24px;"></div>
-    <p style="font-family:'Playfair Display',serif;font-size:clamp(17px,3vw,22px);font-style:italic;line-height:1.75;margin-bottom:14px;">"${esc(review.text)}"</p>
-    <p style="font-size:12px;color:${MUTED};">- ${esc(review.author)}</p>
-    <div style="width:48px;height:2px;background:${ACCENT};margin:24px auto 0;"></div>
-  </div>
-
-  ${galleryStrip(photos.gallery,BORDER,name)}
-
-  <div style="background:${SURFACE};padding:36px;border-top:1px solid ${BORDER};" class="mob-pad" id="contact">
-    <div style="max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;" class="gfooter">
-      <div><p style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;margin-bottom:9px;">Visit Us</p><p style="font-size:13px;color:${MUTED};line-height:1.9;">${esc(address)}</p></div>
-      <div><p style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;margin-bottom:9px;">Hours</p>${hours.map(h=>`<p style="font-size:12px;color:${MUTED};line-height:1.9;">${esc(h)}</p>`).join('')}</div>
-      <div><p style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;margin-bottom:9px;">Contact</p><a href="tel:${cleanPhone(phone)}" style="font-size:17px;font-weight:600;color:${ACCENT};">${esc(phone)}</a><div style="margin-top:16px;font-size:10px;color:#CBD5E1;">A HelloSite · GetHelloSite.com</div></div>
-    </div>
-  </div>
-
-  ${claimCTA(ACCENT, place.id)}`);
-}
-
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 6. REAL ESTATE — New layout · White · Navy #1B3A6B
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const RE_STATS=[{num:'400+',label:'Homes Closed'},{num:'14',label:'Years Local'},{num:'5.0',label:'Star Rating'},{num:'98%',label:'Satisfaction'}];
-
-function templateRealEstate(place, copy, photos) {
-  const {name,shortName,phone,address,rating,reviewCount,reviews,hours} = extractPlaceData(place);
-  const review = bestReview(reviews);
-  const services = copy.services || [];
-  const BG='#FFFFFF',SURFACE='#F4F6FA',ACCENT='#1B3A6B',TEXT='#111827',MUTED='#6B7280',BORDER='#E2E8F0';
-
-  return wrapHTML(name,
-    'family=Libre+Baskerville:ital,wght@0,700;1,400&family=Raleway:wght@400;500;600;700',
-    `body{background:${BG};color:${TEXT};font-family:'Raleway',sans-serif;}`,
-    `<div style="padding:20px 36px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${BORDER};">
-    <div><div style="font-family:'Libre Baskerville',serif;font-size:21px;font-weight:700;color:${TEXT};">${esc(name)}</div><div style="font-size:10px;color:${MUTED};letter-spacing:.1em;margin-top:3px;text-transform:uppercase;">${esc(copy.tagline||'')}</div></div>
-    <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:10px 20px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;">Schedule a Call</a>
-  </div>
-  <div style="padding:62px 36px 50px;max-width:960px;margin:0 auto;" class="mob-pad hero-pad">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;" class="fu"><span style="color:#F59E0B;font-size:16px;">${stars(rating)}</span><span style="font-size:13px;color:${MUTED};">${rating} · ${reviewCount} client reviews</span></div>
-    <h1 style="font-family:'Libre Baskerville',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:700;line-height:1.1;color:${TEXT};margin-bottom:20px;" class="fu d1">${headline(copy.hero_headline,ACCENT)}</h1>
-    <div style="width:56px;height:3px;background:${ACCENT};margin-bottom:22px;opacity:.4;" class="fu d2"></div>
-    <p style="font-size:16px;color:${MUTED};max-width:520px;line-height:1.85;margin-bottom:36px;" class="fu d2">${esc(copy.hero_sub||'')}</p>
-    <div style="display:flex;gap:14px;" class="fu d3">
-      <a href="tel:${cleanPhone(phone)}" style="background:${ACCENT};color:#fff;padding:13px 28px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Start Your Search</a>
-      <a href="tel:${cleanPhone(phone)}" style="background:transparent;border:1px solid ${BORDER};color:${MUTED};padding:13px 22px;border-radius:4px;font-size:13px;" class="mob-hide">${esc(phone)}</a>
-    </div>
-  </div>
-  ${photos.hero?`<div style="height:360px;overflow:hidden;"><img src="${photos.hero}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:center;"/></div>`:''}
-  <div style="background:${ACCENT};padding:28px 36px;">
-    <div style="max-width:960px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;" class="g3">
-      ${RE_STATS.map(({num,label})=>`<div style="text-align:center;"><div style="font-family:'Libre Baskerville',serif;font-size:34px;font-weight:700;color:#fff;line-height:1;">${num}</div><div style="font-family:'Raleway',sans-serif;font-size:10px;color:rgba(255,255,255,.65);letter-spacing:.15em;text-transform:uppercase;margin-top:5px;">${label}</div></div>`).join('')}
-    </div>
-  </div>
-  <div style="background:${SURFACE};padding:52px 36px;border-bottom:1px solid ${BORDER};" class="mob-pad" id="services">
-    <div style="max-width:960px;margin:0 auto;">
-      <h2 style="font-family:'Libre Baskerville',serif;font-size:26px;font-weight:700;color:${TEXT};margin-bottom:8px;">${esc(copy.services_label||'How I Can Help')}</h2>
-      <p style="font-size:14px;color:${MUTED};margin-bottom:30px;line-height:1.7;">${esc(copy.hero_sub||'From your first showing to closing day.')}</p>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;" class="g3">
-        ${services.map((s,i)=>`<div style="background:${BG};border:1px solid ${BORDER};padding:22px;border-radius:6px;transition:border-color .2s,box-shadow .2s;" onmouseover="this.style.borderColor='${ACCENT}';this.style.boxShadow='0 4px 14px rgba(27,58,107,.08)'" onmouseout="this.style.borderColor='${BORDER}';this.style.boxShadow='none'"><div style="width:3px;height:20px;background:${ACCENT};margin-bottom:12px;border-radius:2px;opacity:.5;"></div><div style="font-family:'Libre Baskerville',serif;font-size:14px;font-weight:700;color:${TEXT};margin-bottom:5px;">${esc(s)}</div>${copy.service_descs?.[i]?`<div style="font-size:12px;color:${MUTED};line-height:1.6;">${esc(copy.service_descs[i])}</div>`:''}</div>`).join('')}
-      </div>
-    </div>
-  </div>
-  <div style="padding:56px 36px;max-width:640px;margin:0 auto;" class="mob-pad">
-    <div style="border-left:3px solid rgba(27,58,107,.25);padding-left:28px;">
-      <p style="font-family:'Libre Baskerville',serif;font-size:clamp(17px,2.8vw,21px);font-style:italic;line-height:1.75;color:${TEXT};margin-bottom:14px;">"${esc(review.text)}"</p>
-      <p style="font-size:11px;color:${MUTED};letter-spacing:.08em;text-transform:uppercase;">- ${esc(review.author)}</p>
-    </div>
-  </div>
-  ${galleryStrip(photos.gallery,BORDER,name)}
-  <div style="background:${SURFACE};padding:36px;border-top:1px solid ${BORDER};" class="mob-pad" id="contact">
-    <div style="max-width:960px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;" class="gfooter">
-      <div><p style="font-family:'Libre Baskerville',serif;font-size:11px;font-weight:700;color:${ACCENT};letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Office</p><p style="font-size:13px;color:${MUTED};line-height:1.9;">${esc(address)}</p></div>
-      <div><p style="font-family:'Libre Baskerville',serif;font-size:11px;font-weight:700;color:${ACCENT};letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Availability</p>${hours.map(h=>`<p style="font-size:12px;color:${MUTED};line-height:1.9;">${esc(h)}</p>`).join('')}</div>
-      <div><p style="font-family:'Libre Baskerville',serif;font-size:11px;font-weight:700;color:${ACCENT};letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Direct Line</p><a href="tel:${cleanPhone(phone)}" style="font-family:'Libre Baskerville',serif;font-size:20px;font-weight:700;color:${ACCENT};">${esc(phone)}</a><div style="margin-top:16px;font-size:10px;color:#CBD5E1;">A HelloSite · GetHelloSite.com</div></div>
-    </div>
-  </div>
-  ${claimCTA(ACCENT, place.id)}`);
+/**
+ * Returns the theme name for a Google Place types array.
+ * @param {string[]} placeTypes — place.types from Google Places API
+ * @returns {"bold"|"minimalist"|"transactional"|"informative"}
+ */
+function getTemplate(placeTypes = []) {
+  for (const [type, theme] of TYPE_MAP) {
+    if (placeTypes.includes(type)) return theme;
+  }
+  return 'transactional'; // safe default for unknown types
 }
 
 
 // ─── EXPORTS ──────────────────────────────────────────────────────────────────
 
 module.exports = {
-  templateTrades,
-  templateGrooming,
-  templateWellness,
-  templatePet,
-  templateRetail,
-  templateRealEstate,
+  // Shared utils (unchanged)
+  extractPlaceData,
+  wrapHTML,
+  claimCTA,
+  galleryStrip,
+  bestReview,
+  stars,
+  esc,
+  cleanPhone,
+  headline,
   secureSiteUrl,
+  // New template functions
+  templateBold,
+  templateMinimalist,
+  templateTransactional,
+  templateInformative,
+  // Template selector
+  getTemplate,
+  TYPE_MAP,
 };
