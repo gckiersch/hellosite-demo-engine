@@ -261,7 +261,7 @@ ${FAVICON}
 <link href="${_FONTS}" rel="stylesheet">
 <style>
 :root{
-  --accent:#E8440A;--black:#0D0D0D;--off-black:#1A1A1A;--white:#FFFFFF;
+  --accent:#B91C1C;--black:#0D0D0D;--off-black:#1A1A1A;--white:#FFFFFF;
   --grey-1:#F7F6F4;--grey-2:#E8E6E2;--grey-3:#9E9B96;--text:#1A1A1A;
   --font:'Plus Jakarta Sans',sans-serif;
   --r-sm:8px;--r-md:14px;--r-lg:20px;--r-full:999px;
@@ -304,6 +304,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;}
 .btn-book:active{opacity:.85;transform:scale(.99);}
 .btn-book svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;}
 .btn-call{display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.2);color:var(--white);font-size:14px;font-weight:500;padding:13px 20px;border-radius:var(--r-md);transition:background .15s;-webkit-tap-highlight-color:transparent;}
+.btn-call svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;flex-shrink:0;}
 .btn-call:active{background:rgba(255,255,255,.18);}
 
 /* TRUST BAR */
@@ -672,14 +673,15 @@ img{display:block;max-width:100%;}
 .hero-stars{color:#FFC940;font-size:12px;letter-spacing:1px;}
 .hero-rating-text{font-size:12px;font-weight:600;color:rgba(255,255,255,.6);}
 
-/* CREDENTIALS BAR */
-.creds{background:var(--ink);padding:0 var(--pad);display:flex;align-items:stretch;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+/* CREDENTIALS BAR — mobile-first */
+/* Mobile (≤767px): each item keeps natural width, row scrolls horizontally. */
+.creds{background:var(--ink);padding:0 var(--pad);display:flex;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .creds::-webkit-scrollbar{display:none;}
-.cred{display:flex;align-items:center;gap:8px;padding:16px 20px 16px 0;flex-shrink:0;}
-.cred+.cred{padding-left:20px;border-left:1px solid rgba(255,255,255,.07);}
-.cred-icon{width:28px;height:28px;background:rgba(255,255,255,.06);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.cred-icon svg{width:14px;height:14px;stroke:var(--sky);fill:none;stroke-width:2.2;stroke-linecap:round;}
-.cred-text{font-size:12px;font-weight:700;color:rgba(255,255,255,.55);white-space:nowrap;}
+.cred{display:flex;align-items:center;gap:10px;padding:18px 18px 18px 0;flex:0 0 auto;}
+.cred+.cred{padding-left:18px;border-left:1px solid rgba(255,255,255,.07);}
+.cred-icon{width:32px;height:32px;background:rgba(255,255,255,.06);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cred-icon svg{width:16px;height:16px;stroke:var(--sky);fill:none;stroke-width:2.2;stroke-linecap:round;}
+.cred-text{font-size:13px;font-weight:700;color:rgba(255,255,255,.55);white-space:nowrap;}
 .cred-text b{color:var(--white);font-weight:700;}
 
 /* SERVICES */
@@ -758,9 +760,13 @@ footer{background:var(--black);padding:20px var(--pad);display:flex;align-items:
   .hero{justify-content:center;}
   .hero-content{max-width:560px;padding:0 0 0 calc(var(--pad) + 12px);margin-top:42px;}
   .hero-tagline{max-width:400px;}
-  .creds{justify-content:flex-start;gap:0;}
-  .cred{padding:18px 32px 18px 0;}
-  .cred+.cred{padding-left:32px;}
+  /* Desktop: items distribute evenly across full row, no scroll */
+  .creds{justify-content:center;overflow-x:visible;}
+  .cred{flex:1;justify-content:center;padding:22px 16px;min-width:0;}
+  .cred-icon{width:36px;height:36px;}
+  .cred-icon svg{width:18px;height:18px;}
+  .cred-text{font-size:14px;}
+  .cred+.cred{padding-left:16px;}
   .service-list{display:grid;grid-template-columns:1fr 1fr;gap:0 48px;}
   .service-item:nth-child(1),.service-item:nth-child(2){border-top:1px solid var(--grey-2);}
   .photos-grid{grid-template-columns:3fr 2fr;grid-template-rows:1fr 1fr;height:420px;}
@@ -1019,39 +1025,32 @@ img{display:block;max-width:100%;}
 :focus{outline:none;}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px;}
 
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:18px var(--pad);display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;}
-nav.scrolled{background:rgba(248,245,240,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--stone);}
-.nav-logo{font-size:15px;font-weight:800;font-style:italic;letter-spacing:-.03em;color:var(--white);transition:color .3s;}
-nav.scrolled .nav-logo{color:var(--ink);}
-.nav-book{font-size:12px;font-weight:600;color:var(--white);padding:8px 16px;border:1px solid rgba(255,255,255,.35);border-radius:999px;transition:all .2s;}
-nav.scrolled .nav-book{color:var(--ink);border-color:var(--stone);}
+/* NAV — always solid, light theme (no full-bleed photo behind it now) */
+nav{position:sticky;top:0;z-index:200;padding:14px var(--pad);display:flex;align-items:center;justify-content:space-between;background:rgba(248,245,240,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--stone);}
+.nav-logo{font-size:15px;font-weight:800;font-style:italic;letter-spacing:-.03em;color:var(--ink);}
+.nav-book{font-size:12px;font-weight:600;color:var(--ink);padding:8px 16px;border:1px solid var(--stone);border-radius:999px;transition:all .2s;}
 .nav-book:hover{background:var(--ink);color:var(--white);border-color:var(--ink);}
 
-/* HERO — overflow visible so floating card bleeds below */
-.hero{position:relative;height:100svh;min-height:600px;}
-.hero-media{position:absolute;inset:0;overflow:hidden;}
-.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;}
-.hero-overlay{position:absolute;inset:0;background:linear-gradient(160deg,rgba(26,25,22,.5) 0%,rgba(26,25,22,.25) 40%,rgba(26,25,22,.75) 100%);}
-.hero-content{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:80px var(--pad) 80px;pointer-events:none;}
-.hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:12px;}
-.hero-name{font-size:clamp(42px,11vw,68px);font-weight:800;font-style:italic;letter-spacing:-.04em;line-height:.93;color:var(--white);}
-.hero-sub{font-size:14px;font-weight:400;color:rgba(255,255,255,.45);margin-top:14px;max-width:240px;line-height:1.65;}
-
-/* FLOATING CARD — outside hero */
-.float-card-wrap{padding:0 var(--pad);margin-top:-32px;position:relative;z-index:10;margin-bottom:40px;}
-.float-card{background:var(--white);border-radius:16px;padding:16px 18px;box-shadow:0 8px 32px rgba(26,25,22,.12);display:flex;align-items:center;justify-content:space-between;gap:12px;}
-.fc-info{min-width:0;}
-.fc-rating{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
-.fc-stars{color:#B8A06A;font-size:12px;letter-spacing:1px;flex-shrink:0;}
-.fc-score{font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;}
-.fc-reviews{font-size:11px;color:var(--muted);white-space:nowrap;}
-.fc-location{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.fc-btn{background:var(--accent);color:var(--white);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:10px 16px;border-radius:999px;white-space:nowrap;flex-shrink:0;transition:opacity .15s;}
-.fc-btn:active{opacity:.85;}
+/* HERO — split layout. Mobile: stacked text + photo strip. Desktop: 50/50 grid */
+.hero{background:var(--warm);}
+.hero-grid{padding:32px var(--pad) 40px;display:flex;flex-direction:column;gap:28px;max-width:1080px;margin:0 auto;}
+.hero-text{display:flex;flex-direction:column;gap:14px;}
+.hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);}
+.hero-name{font-size:clamp(40px,10vw,68px);font-weight:800;font-style:italic;letter-spacing:-.04em;line-height:.95;color:var(--ink);}
+.hero-sub{font-size:15px;font-weight:400;color:var(--muted);line-height:1.65;max-width:380px;}
+.hero-rating{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.hero-rating-stars{color:#B8A06A;font-size:13px;letter-spacing:1.5px;}
+.hero-rating-score{font-size:13px;font-weight:700;color:var(--ink);}
+.hero-rating-meta{font-size:12px;color:var(--muted);}
+.hero-cta{align-self:flex-start;margin-top:8px;background:var(--accent);color:var(--white);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:14px 26px;border-radius:999px;transition:opacity .15s;-webkit-tap-highlight-color:transparent;}
+.hero-cta:active{opacity:.85;}
+.hero-photo{margin:0 calc(var(--pad) * -1);overflow:hidden;aspect-ratio:3/2;background:var(--stone);}
+.hero-photo img{width:100%;height:100%;object-fit:cover;object-position:center 25%;}
 
 /* SHARED */
-.sec{padding:0 var(--pad) 56px;}
+/* Treatments/services section — white block to break up the warm tone */
+.sec{background:var(--white);padding:56px var(--pad);}
+.sec>*{max-width:860px;margin-left:auto;margin-right:auto;}
 .sec-eyebrow{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
 .sec-title{font-size:clamp(26px,6vw,36px);font-weight:800;font-style:italic;letter-spacing:-.04em;line-height:1.05;color:var(--ink);margin-bottom:28px;}
 
@@ -1116,10 +1115,13 @@ footer{background:var(--ink);padding:18px var(--pad);display:flex;align-items:ce
 @media(min-width:768px){
   :root{--pad:48px;}
   .sticky-cta{display:none!important;}
-  .hero-content{max-width:560px;padding-left:calc(var(--pad) + 8px);}
-  .hero-overlay{background:linear-gradient(to right,rgba(26,25,22,.88) 0%,rgba(26,25,22,.55) 45%,rgba(26,25,22,.1) 75%,transparent 100%);}
-  .float-card-wrap{max-width:420px;}
-  .sec{max-width:860px;margin:0 auto;padding-left:var(--pad);padding-right:var(--pad);}
+  /* Hero: text left (right-aligned in column), photo fills the right half edge-to-edge */
+  .hero-grid{max-width:none;padding:0;display:grid;grid-template-columns:1fr 1fr;align-items:stretch;gap:0;min-height:580px;}
+  .hero-text{padding:64px var(--pad);max-width:580px;justify-self:end;width:100%;display:flex;flex-direction:column;justify-content:center;gap:14px;}
+  .hero-sub{max-width:420px;}
+  .hero-photo{margin:0;aspect-ratio:auto;border-radius:0;}
+  .hero-photo img{height:100%;}
+  .sec{padding:72px var(--pad);}
   .service-list{display:grid;grid-template-columns:1fr 1fr;gap:0 56px;}
   .service-item:nth-child(1),.service-item:nth-child(2){border-top:1px solid var(--stone);}
   .photo-grid{height:440px;}
@@ -1128,8 +1130,9 @@ footer{background:var(--ink);padding:18px var(--pad);display:flex;align-items:ce
   .contact-title{grid-column:1 / 3;}
 }
 @media(min-width:1024px){
-  .hero-content{padding-left:80px;}
-  .hero-name{font-size:76px;}
+  .hero-grid{min-height:640px;}
+  .hero-text{padding:80px var(--pad);}
+  .hero-name{font-size:72px;}
 }
 </style>
 </head>
@@ -1138,35 +1141,28 @@ footer{background:var(--ink);padding:18px var(--pad);display:flex;align-items:ce
 
 <nav id="nav" role="banner">
   <span class="nav-logo">${esc(name)}</span>
-  ${phone ? `<a href="tel:${cp}" class="nav-book">Reserve a visit</a>` : ''}
+  ${phone ? `<a href="tel:${cp}" class="nav-book">Contact</a>` : ''}
 </nav>
 
 <main id="main">
 <header class="hero">
-  <div class="hero-media" aria-hidden="true">
-    ${heroImg ? `<img class="hero-img" src="${heroImg}" alt="${heroAlt}" fetchpriority="high" decoding="async">` : ''}
-    <div class="hero-overlay"></div>
-  </div>
-  <div class="hero-content">
-    <p class="hero-eyebrow fu">${esc(cityStr || 'Local')}</p>
-    <h1 class="hero-name fu d1">${esc(name)}</h1>
-    <p class="hero-sub fu d2">${esc(tagline)}</p>
+  <div class="hero-grid">
+    <div class="hero-text">
+      <p class="hero-eyebrow fu">${esc(cityStr || 'Local')}</p>
+      <h1 class="hero-name fu d1">${esc(name)}</h1>
+      <p class="hero-sub fu d2">${esc(tagline)}</p>
+      <div class="hero-rating fu d3" role="img" aria-label="${ratingTxt} stars, ${reviewCount} reviews">
+        <span class="hero-rating-stars" aria-hidden="true">${stars(rating)}</span>
+        <span class="hero-rating-score">${ratingTxt}</span>
+        <span class="hero-rating-meta">· ${reviewCount} reviews${cityStr ? ` · ${esc(cityStr)}` : ''}</span>
+      </div>
+      ${phone ? `<a href="tel:${cp}" class="hero-cta fu d3" aria-label="Contact — call ${esc(phone)}">Contact →</a>` : ''}
+    </div>
+    ${heroImg ? `<div class="hero-photo">
+      <img src="${heroImg}" alt="${heroAlt}" fetchpriority="high" decoding="async">
+    </div>` : ''}
   </div>
 </header>
-
-<div class="float-card-wrap fu d3">
-  <div class="float-card" role="complementary">
-    <div class="fc-info">
-      <div class="fc-rating" role="img" aria-label="${ratingTxt} stars, ${reviewCount} reviews">
-        <span class="fc-stars" aria-hidden="true">${stars(rating)}</span>
-        <span class="fc-score">${ratingTxt}</span>
-        <span class="fc-reviews">&nbsp;· ${reviewCount} reviews</span>
-      </div>
-      ${cityStr ? `<div class="fc-location">📍 ${esc(cityStr)}</div>` : ''}
-    </div>
-    ${phone ? `<a href="tel:${cp}" class="fc-btn" aria-label="Reserve — call ${esc(phone)}">Reserve →</a>` : ''}
-  </div>
-</div>
 
 ${servicesHTML}
 ${photosHTML}
@@ -1203,8 +1199,8 @@ ${quoteHTML}
   <span class="foot-credit">A HelloSite · gethellosite.com</span>
 </footer>
 
-${phone ? `<div class="sticky-cta" role="complementary" aria-label="Quick booking">
-  <a href="tel:${cp}" class="sticky-reserve">Reserve a visit</a>
+${phone ? `<div class="sticky-cta" role="complementary" aria-label="Quick contact">
+  <a href="tel:${cp}" class="sticky-reserve">Contact</a>
   <a href="tel:${cp}" class="sticky-phone">${esc(phone)}</a>
 </div>` : ''}
 
@@ -1597,16 +1593,28 @@ const TYPE_MAP = [
   ['store',                   'informative'],
 ];
 
+// Fallback map: when place.types misses TYPE_MAP, route by detectIndustry's
+// coarse classification. Keeps unknown auto/cleaning/landscaping out of the
+// transactional bucket, which is the wrong feel for those verticals.
+const INDUSTRY_FALLBACK = {
+  trades:   'bold',
+  grooming: 'transactional',
+  pet:      'transactional',
+  wellness: 'minimalist',
+  retail:   'informative',
+};
+
 /**
  * Returns the theme name for a Google Place types array.
  * @param {string[]} placeTypes — place.types from Google Places API
+ * @param {string} [industryFallback] — coarse industry from detectIndustry()
  * @returns {"bold"|"minimalist"|"transactional"|"informative"}
  */
-function getTemplate(placeTypes = []) {
+function getTemplate(placeTypes = [], industryFallback = null) {
   for (const [type, theme] of TYPE_MAP) {
     if (placeTypes.includes(type)) return theme;
   }
-  return 'transactional'; // safe default for unknown types
+  return INDUSTRY_FALLBACK[industryFallback] || 'transactional';
 }
 
 

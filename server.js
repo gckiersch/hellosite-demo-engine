@@ -858,8 +858,10 @@ app.get('/demo', async (req, res) => {
 
         if (booking_url) copy.booking_url = booking_url;
 
-        // Determine theme from Google Place types (template_refactor 2026-04)
-        const theme = getTemplate(place.types || []);
+        // Determine theme from Google Place types (template_refactor 2026-04).
+        // Falls back to detectIndustry's classification when place.types misses TYPE_MAP.
+        const placeTypes = place.types || [];
+        const theme = getTemplate(placeTypes, industry);
         const TEMPLATE_FNS = {
           bold:          templateBold,
           minimalist:    templateMinimalist,
@@ -870,7 +872,7 @@ app.get('/demo', async (req, res) => {
 
         demoCache.set(cacheKey, html);
         demoProgress.delete(cacheKey);
-        console.log(`✓ Done — ${industry} → ${theme}`);
+        console.log(`✓ Done — ${industry} → ${theme}  [types: ${placeTypes.join(', ') || '(none)'}]`);
 
       } catch (err) {
         console.error(err);
