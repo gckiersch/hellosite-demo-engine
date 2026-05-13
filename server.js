@@ -1170,12 +1170,12 @@ const CHECKOUT_PRICE_MAP = {
   starter: {
     setup:   'price_1TIFgRJZ1Zjs5qlK6h4ch4cE',  // $99 one-time
     monthly: 'price_1TIDiIJZ1Zjs5qlKVU9jTcGR',  // $25/mo recurring
-    annual:  'price_1TIDk3JZ1Zjs5qlKGEB5Xf0i',  // $240/yr recurring
+    annual:  'price_1TWjvaJZ1Zjs5qlKV5AabGC8',  // $240/yr recurring
   },
   executive: {
     setup:   'price_1TIFgoJZ1Zjs5qlK4YI7Wheq',  // $249 one-time
     monthly: 'price_1TIDicJZ1Zjs5qlKhAAulL1O',  // $75/mo recurring
-    annual:  'price_1TIDjNJZ1Zjs5qlKvZrTYVM0',  // $720/yr recurring
+    annual:  'price_1TWjv4JZ1Zjs5qlK6FjFBX53',  // $720/yr recurring
   }
 };
 
