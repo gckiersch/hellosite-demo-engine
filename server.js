@@ -51,6 +51,20 @@ function diskCacheHas(cacheKey) {
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
+// Fetch with a hard timeout so a hung upstream (Google/Anthropic) can't stall a demo build forever.
+async function fetchWithTimeout(url, opts = {}, ms = 20000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Upstream timeout after ' + ms + 'ms: ' + String(url).split('?')[0]);
+    throw e;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 const demoCache    = new Map(); // cacheKey -> html
 const demoProgress = new Map(); // cacheKey -> true (building)
@@ -139,7 +153,7 @@ async function classifyPhotos(photoUrls, industry) {
   };
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
@@ -200,8 +214,8 @@ async function classifyPhotosWithOverride(photoUrls, industry, placeId) {
 // ─── FETCH PLACE ─────────────────────────────────────────────────────────────
 async function getPlaceDetails(placeId) {
   const fields = ['id','displayName','formattedAddress','nationalPhoneNumber','regularOpeningHours','rating','userRatingCount','reviews','photos','primaryTypeDisplayName','types','editorialSummary'].join(',');
-  const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}?fields=${fields}&key=${GOOGLE_API_KEY}`);
-  if (!res.ok) throw new Error(`Places API error: ${res.status}`);
+  const res = await fetchWithTimeout(`https://places.googleapis.com/v1/places/${placeId}?fields=${fields}&key=${GOOGLE_API_KEY}`, {}, 15000);
+  if (!res.ok) { const body = await res.text().catch(() => ''); throw new Error(`Places API ${res.status}: ${body.slice(0, 300)}`); }
   const data = await res.json();
   data.id = data.id || placeId; // ensure business ID is always available to templates
   return data;
@@ -260,11 +274,12 @@ Return ONLY valid JSON. No markdown, no backticks:
   "theme": "${colorDefaults[industry]?.theme}"
 }`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1400, messages: [{ role: 'user', content: prompt }] })
-  });
+  }, 30000);
+  if (!res.ok) { const body = await res.text().catch(() => ''); throw new Error(`Anthropic copy ${res.status}: ${body.slice(0, 300)}`); }
   const data = await res.json();
   const text = data.content[0].text.trim();
   try { return JSON.parse(text); }
@@ -847,7 +862,7 @@ app.get('/demo-status', (req, res) => {
     if (html) demoCache.set(cacheKey, html);
     return res.json({ ready: true });
   }
-  if (demoErrors.has(cacheKey)) return res.json({ ready: false, error: true });
+  if (demoErrors.has(cacheKey)) return res.json({ ready: false, error: true, message: demoErrors.get(cacheKey) });
   return res.json({ ready: false });
 });
 
